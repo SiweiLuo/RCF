@@ -1,0 +1,32 @@
+const Double_t mVzCut[2] = {-50., 50.};
+const Double_t mVrCut = 2.;
+
+const Double_t mEmcePtCut[4] = {1.,3,3.5,5.5};
+const Double_t mEmceAdcCut[4] = {180, 180,290, 400};
+const Double_t mEmceEtaCut[2] = {-1,1};
+const Double_t mEmceHitsFitCut = 20;
+const Double_t mEmceHitsDedxCut = 15;
+const Double_t mEmceDcaCut = 3.;
+const Double_t mEmcenSigmaElectronCut[2] = {-1.0,2.0};
+const Double_t mEmcenEtaCut = 2;
+const Double_t mEmcenPhiCut = 2;
+const Double_t mEmcePhiDistCut[2] = {-0.01,0.01};
+const Double_t mEmceZDistCut[2] = {-2,2};
+const Double_t mEmcePECut[2] = {0.6,1.5};
+
+const Double_t mTpcePtCut[4] = {1.0,1.0,1.0,1.0};
+const Double_t mTpcePCut[4] = {1.0,1.0,1.0,1.0};
+const Double_t mTpceEtaCut[2] = {-1,1};
+const Double_t mTpceDcaCut = 3.;
+const Double_t mTpceHitsFitCut = 20;
+const Double_t mTpceHitsDedxCut = 15;
+const Double_t mTpcenSigmaElectronCut[2] = {-1.5,2.5};
+const Double_t mTpceBetaCut[2] = {0.97,1.03};
+
+const Double_t mPairYCut[2] = {-1,1};
+const Double_t mJpsiMassCut = 1.0;
+const Double_t mHadronPtCut[2] = {0.15,30};
+const Double_t mHadronEtaCut[2] = {-1,1};
+const Double_t mHadronnHitsFitCut = 15;
+const Double_t mHadronDcaCut = 2;
+const Double_t polarization_Par[7]={-0.2974,-0.06943,-0.07592,-0.3339,-0.512,-0.5702,-0.5173};
