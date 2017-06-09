@@ -103,12 +103,6 @@ Int_t StMyJpsiEffMaker::Init()
 	if(uncertainty==36) mTpceHitsDedxCut = 15.;
 	if(uncertainty==37) mTpceDcaCut = 3.; 
 
-	/*
-	if(uncertainty==36) dopol = 1;
-	if(uncertainty==37) dopol = -1;
-	if(uncertainty==38) dopolphi = 1;
-	if(uncertainty==39) dopolphi=-1;
-*/
 	TDatime* time = new TDatime();
 
 	betarootfile = new TFile("/star/data01/pwg/siwei/Jpsi/TOF_1_beta_mean_sigma.root");
@@ -391,7 +385,6 @@ Int_t StMyJpsiEffMaker::Make()
 			Double_t weight1 = (A+Aplus-Aminus)*TMath::Power(1+(JpsiMc.Pt()/(B+Bplus-Bminus))*(JpsiMc.Pt()/(B+Bplus-Bminus)), -6)*(JpsiMc.Pt());
 			if(rapidity)weight1 = weight1*TMath::Exp(-0.5*(JpsiMc.Rapidity()*JpsiMc.Rapidity())/(1.416*1.416));
 
-//			cout<<"weight1="<<weight1<<endl;
 
 			float deltaeta = mElectron->mcEta -mElectron2->mcEta;
 			float deltaphi = mElectron->mcPhi - mElectron2->mcPhi;
@@ -559,11 +552,9 @@ Int_t StMyJpsiEffMaker::Make()
 				betaGaus2->SetParameters(1,beta2para[0][0]+meanbeta*beta2para[0][1],beta2para[1][0]+sigmabeta*beta2para[1][1]);
 				beta2=betaGaus2->GetRandom();
 				cout<<"beta2========"<<beta2<<endl;
-				//				cout<<"nHitsFit1="<<nHitsFit1<<"nMaxPts1="<<nMaxPts1<<"dca1="<<dca1<<"eta1="<<eta1<<"nsigma1="<<nsigma1<<"nHitsdedx1="<<nHitsdedx1<<"pt1="<<pt1<<endl;
 
 				if(nHitsFit1>=mTpceHitsFitCut &&
 						nHitsFit1/nMaxPts1>=mTpceHitsRatio &&
-//						dca1<=mTpceDcaCut &&
 						dca1<mTpceDcaCut &&
 						eta1>=mTpceEtaCut[0] && eta1<=mTpceEtaCut[1] &&
 						nsigma1>mTpceLoosenSigmaElectronCut[0] && nsigma1<mTpceLoosenSigmaElectronCut[1] &&
@@ -579,27 +570,19 @@ Int_t StMyJpsiEffMaker::Make()
 						isEmc1 = kTRUE;
 						testhist->Fill(6);	
 					}
-//					cout<<"beta1="<<beta1<<"nsigma1="<<nsigma1<<"rand="<<mRan->Uniform()<<endl;
 					if(mRan->Uniform(0,1)<tofEff1 && beta1>=mTpceBetaCut[0] && beta1<=mTpceBetaCut[1] && nsigma1>mTpcenSigmaElectronCut[0] && nsigma1<mTpcenSigmaElectronCut[1]){
 						isTOF1 = kTRUE;
 						testhist->Fill(7);
 					}
-//					cout<<"pt1="<<pt1<<"dsmAdc="<<dsmAdc01<<"e1="<<e1<<endl;
 					if(pt1>2.5 && dsmAdc01>11 && e1>0 && adc01>mEmceAdcCut[0]*dsmadcfactor && pe1>0.3 && pe1<1.5){
-//					if(pt1>2.5 &&                e1>0 && adc01>mEmceAdcCut[0] && pe1>0.3 && pe1<1.5){
-//					if(pt1>2.5 && dsmAdc01>11 && e1>0 &&                         pe1>0.3 && pe1<1.5){
 						isTrg1[0] = kTRUE;
 						testhist->Fill(9);
 					}
 					if(pt1>3.6 && dsmAdc01>15 && e1>0 && adc01>mEmceAdcCut[1]*dsmadcfactor && pe1>0.3 && pe1<1.5){
-//					if(pt1>3.6 &&                e1>0 && adc01>mEmceAdcCut[1] && pe1>0.3 && pe1<1.5){
-//					if(pt1>3.6 && dsmAdc01>15 && e1>0 &&                         pe1>0.3 && pe1<1.5){
 						isTrg1[1] = kTRUE;
 						testhist->Fill(10);
 					}
 					if(pt1>4.3 && dsmAdc01>18 && e1>0 && adc01>mEmceAdcCut[2]*dsmadcfactor && pe1>0.3 && pe1<1.5){
-//					if(pt1>4.3 &&                e1>0 && adc01>mEmceAdcCut[2] && pe1>0.3 && pe1<1.5){
-//					if(pt1>4.3 && dsmAdc01>18 && e1>0 &&                         pe1>0.3 && pe1<1.5){
 						isTrg1[2] = kTRUE;
 						testhist->Fill(11);
 					}
@@ -607,7 +590,6 @@ Int_t StMyJpsiEffMaker::Make()
 
 				if(nHitsFit2>=mTpceHitsFitCut &&
 						nHitsFit2/nMaxPts2>=mTpceHitsRatio &&
-//						dca2<=mTpceDcaCut &&
 						dca2<mTpceDcaCut &&
 						eta2>=mTpceEtaCut[0] && eta2<=mTpceEtaCut[1] &&
 						nsigma2>=mTpceLoosenSigmaElectronCut[0] && nsigma2<=mTpceLoosenSigmaElectronCut[1] &&
@@ -628,75 +610,43 @@ Int_t StMyJpsiEffMaker::Make()
 						testhist->Fill(21);
 						}
 					if(pt2>2.5 && dsmAdc02>11 && e2>0 && adc02>mEmceAdcCut[0]*dsmadcfactor && pe2>0.3 && pe2<1.5){ 
-//					if(pt2>2.5 &&			     e2>0 && adc02>mEmceAdcCut[0] && pe2>0.3 && pe2<1.5){ 
-//					if(pt2>2.5 && dsmAdc02>11 && e2>0 && 						 pe2>0.3 && pe2<1.5){ 
-	//					cout<<"nHitsFit2="<<nHitsFit2<<"nMaxPts2="<<nMaxPts2<<"dca2="<<dca2<<"eta2="<<eta2<<"nsigma2="<<nsigma2<<"nHitsdedx2="<<nHitsdedx2<<"pt2="<<pt2<<endl;
 						isTrg2[0] = kTRUE;
 						testhist->Fill(12);
 					}
 		
 					if(pt2>3.6 && dsmAdc02>15 && e2>0 && adc02>mEmceAdcCut[1]*dsmadcfactor && pe2>0.3 && pe2<1.5){
-//					if(pt2>3.6 && 			     e2>0 && adc02>mEmceAdcCut[1] && pe2>0.3 && pe2<1.5){
-//					if(pt2>3.6 && dsmAdc02>15 && e2>0 &&                         pe2>0.3 && pe2<1.5){
 						   	isTrg2[1] = kTRUE;
 							testhist->Fill(13);
 						}
 					if(pt2>4.3 && dsmAdc02>18 && e2>0 && adc02>mEmceAdcCut[2]*dsmadcfactor && pe2>0.3 && pe2<1.5) {
-//					if(pt2>4.3 && 				 e2>0 && adc02>mEmceAdcCut[2] && pe2>0.3 && pe2<1.5) {
-//					if(pt2>4.3 && dsmAdc02>18 && e2>0 &&                         pe2>0.3 && pe2<1.5) {
 						isTrg2[2] = kTRUE;
 						testhist->Fill(14);
 					}
 					}		
 
-				//			if(adc01>mEmceAdcCut[0]*dsmadcfactor && pt1>2.5 && dsmAdc01>11){
-				//				if(adc01>mEmceAdcCut[1]*dsmadcfactor && pt1>3.6 && dsmAdc01>15){
-				//				if(adc01>mEmceAdcCut[2]*dsmadcfactor && pt1>4.3 && dsmAdc01>18){
-				/*
-				   if(isTpc1 == kTRUE && isTpc2 == kTRUE) {
-				   hJpsiCosThetaInvMPt->Fill(costheta,JpsiRc.M(),JpsiRc.Pt(),weight1);
-				   hJpsiCosThetaInvMPtCS->Fill(TMath::Cos(dtheta_CS),JpsiRc.M(),JpsiRc.Pt(),weight1);
-				   hJpsiPhiInvMPt->Fill(dphi_HX,JpsiRc.M(),JpsiRc.Pt(),weight1);
-				   hJpsiPhiInvMPtCS->Fill(dphi_CS,JpsiRc.M(),JpsiRc.Pt(),weight1);
-				   }
-				   if(isTpc1 == kTRUE || isTpc2 == kTRUE) {
-				   hJpsiCosThetaInvMPt1->Fill(costheta,JpsiRc.M(),JpsiRc.Pt(),weight1);
-				   hJpsiCosThetaInvMPtCS1->Fill(TMath::Cos(dtheta_CS),JpsiRc.M(),JpsiRc.Pt(),weight1);
-				   hJpsiPhiInvMPt1->Fill(dphi_HX,JpsiRc.M(),JpsiRc.Pt(),weight1);
-				   hJpsiPhiInvMPtCS1->Fill(dphi_CS,JpsiRc.M(),JpsiRc.Pt(),weight1);
-				   }
-				   */
-
-//				cout<<"isEmc1"<<isEmc1<<"isEmc2"<<isEmc2<<"isTpc1"<<isTpc1[0]<<"isTpc2"<<isTpc2[0]<<"isTrg1[0]"<<isTrg1[0]<<"isTrg2[0]"<<isTrg2[0]<<endl;
 				testhist->Fill(26);	
-//				if((isEmc1 || isTOF1) || (isEmc2 || isTOF2)){  //  or passed tof cuts 
 					if(JpsiRc.M()>3.0 && JpsiRc.M()<3.2){
 						if((isTpc1[0] && isTpc2[0]) || (isTpc2[0] && isEmc1) || (isTpc1[0] && isEmc2) || (isEmc1 && isEmc2)) {
 							hMBJpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 							hMBJpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
 						}
-//						if((isEmc1 && isTpc2 && isTrg1[0])||(isEmc2 && isTpc1 && isTrg2[0]) || (isEmc1 && isEmc2 && isTrg1[0]) || (isEmc1 && isEmc2 && isTrg2[0])) {
 
-//						if((isTrg1[0] && isTpc2[0] && isTOF2) || (isTrg2[0] && isTpc1[0] && isTOF1) || (isEmc2 && isTrg1[0]) || (isEmc1 && isTrg2[0])) { //20161219
 						if((isTrg1[0] && isEmc1 && isTpc2[0]) || (isTrg2[0] && isEmc2 && isTpc1[0])) {
 							cout<<"mcPt = "<<JpsiMc.Pt()<<"weight1="<<weight1<<" mass = "<<JpsiMc.M()<<endl;
 							hHT0JpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 							hHT0JpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
 							testhist->Fill(27);
 						}
-//						if((isTrg1[1] && isEmc1 && isTpc2[1])||(isTrg2[1] && isEmc2 && isTpc1[1]) || (isEmc1 && isEmc2 && isTrg1[1]) || (isEmc1 && isEmc2 && isTrg2[1])) {
 						if((isTrg1[1] && isEmc1 && isTpc2[1])||(isTrg2[1] && isEmc2 && isTpc1[1])) {
 							hHT1JpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 							hHT1JpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
 						}
-//						if((isEmc1 && isTpc2[2] && isTrg1[2])||(isEmc2 && isTpc1[2] && isTrg2[2]) || (isEmc1 && isEmc2 && isTrg1[2]) || (isEmc1 && isEmc2 && isTrg2[2])) {
 						if((isEmc1 && isTpc2[2] && isTrg1[2])||(isEmc2 && isTpc1[2] && isTrg2[2])) {
 							hHT2JpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 							hHT2JpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
 						}
 					}
 				}
-//			}	
 			}
 			}
 			return kStOk;
