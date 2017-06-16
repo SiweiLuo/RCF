@@ -29,6 +29,8 @@
 #define PMASS 0.938272
 ClassImp(StMyJpsiEffMaker);
 
+Double_t CrystalBall2(Double_t *x, Double_t *par);
+
 //_____________________________________________________________
 StMyJpsiEffMaker::StMyJpsiEffMaker(const char *name, TChain *chain, Int_t uncertainty_init):StMaker("myJpsiEff",name)
 {
@@ -65,8 +67,8 @@ void StMyJpsiEffMaker::Clear(Option_t* option)
 Int_t StMyJpsiEffMaker::Init()
 {
 
+	mDoSmearing = true;
 	if(uncertainty>=1 && uncertainty<=11){
-		mDoSmearing = true;
 		mSmearingFac = 0.0065+0.0001*uncertainty;
 	}
 
@@ -168,6 +170,28 @@ Int_t StMyJpsiEffMaker::Init()
 	}
 	cout<<endl;
 	inf.close();
+
+	inf.open("ptsmearing/reso_fit.txt");
+	double reso[2],resoErr[2];
+	for(int i=0;i<2;i++){
+		inf>>reso[i]>>resoErr[i];
+	}
+	inf.close();
+
+	fReso = new TF1("fReso","sqrt([0]*[0]*x*x+[1]*[1])",0,20);
+	fReso->SetParameters(reso);
+	fReso->SetNpx(1000);
+
+	inf.open("ptsmearing/dpt_CBfit.txt");
+	double pars[7],parsErr[7];
+	for(int i=0;i<7;i++){
+		inf>>pars[i]>>parsErr[i];
+	}
+	inf.close();
+
+	fmomShape = new TF1("fmomShape", CrystalBall2, -1., 1., 7);
+	fmomShape->SetParameters(pars);
+	fmomShape->SetNpx(1000);
 
 	//hMCElectronPt = new TH1D("mcElectronPt","input electron pt",300,0,30);
 	testhist = new TH1F("test","test",30,0,30);
@@ -470,7 +494,10 @@ Int_t StMyJpsiEffMaker::Make()
 				Double_t p1 = mElectron->p;
 				Double_t pe1 = (e1>0.1)? p1/e1:9999;
 				Double_t pt1 = mElectron->pt;
-				if(mDoSmearing) pt1=pt1*(1.+mRan->Gaus(0,mSmearingFac*pt1));	
+				//	if(mDoSmearing) pt1=pt1*(1.+mRan->Gaus(0,mSmearingFac*pt1));	
+				cout<<"pt1 ====="<<pt1<<endl;
+				if(mDoSmearing) pt1 = smearElecPt(pt1,fReso,fmomShape);	
+				cout<<"pt1 ====="<<pt1<<endl;
 				Double_t nEta1 = mElectron->nEta;
 				Double_t nPhi1 = mElectron->nPhi;
 				Double_t zDist1 = mElectron->zDist;
@@ -520,7 +547,10 @@ Int_t StMyJpsiEffMaker::Make()
 				Double_t p2 = mElectron2->p;
 				Double_t pe2 = (e2>0.1)? p2/e2:9999;
 				Double_t pt2 = mElectron2->pt;
-				if(mDoSmearing) pt2 = pt2*(1+mRan->Gaus(0,mSmearingFac*pt2));
+				cout<<"pt2======="<<pt2<<endl;
+				//				if(mDoSmearing) pt2 = pt2*(1+mRan->Gaus(0,mSmearingFac*pt2));
+				if(mDoSmearing) pt2 = smearElecPt(pt2,fReso,fmomShape);
+				cout<<"pt2======="<<pt2<<endl;
 				Double_t nEta2 = mElectron2->nEta;
 				Double_t nPhi2 = mElectron2->nPhi;
 				Double_t zDist2 = mElectron2->zDist;
@@ -672,15 +702,76 @@ Double_t StMyJpsiEffMaker::getTOFeff(int charge, double pt, double eta){
 	}
 }
 
-Double doSmear(){
+Double_t StMyJpsiEffMaker::smearElecPt(Double_t ept, TF1 *fdPtSig, TF1 *momShape){
+	Double_t epsig = fdPtSig->Eval(ept);
+	Double_t smpt = ept*(1. + momShape->GetRandom()*epsig/0.01);
+	return smpt;
+}
 
+Double_t CrystalBall2(Double_t *x, Double_t *par)
+{
+	Double_t N = par[0];
+	Double_t mu = par[1];
+	Double_t s = par[2];
+	Double_t n1 = par[3];
+	Double_t alpha1 = par[4];
+	Double_t n2 = par[5];
+	Double_t alpha2 = par[6];
 
+	Double_t A = TMath::Power(n1/fabs(alpha1), n1) * TMath::Exp(-alpha1*alpha1/2.);
+	Double_t B = n1/fabs(alpha1) - fabs(alpha1);
 
+	Double_t C = TMath::Power(n2/fabs(alpha2), n2) * TMath::Exp(-alpha2*alpha2/2.);
+	Double_t D = n2/fabs(alpha2) - fabs(alpha2);
 
+	Double_t norm = (x[0]-mu)/s;
 
-
+	if(norm < -alpha1) {
+		return N * A * TMath::Power(B-norm, -n1);
+	} else if(norm < alpha2) {
+		return N * TMath::Exp(-0.5*norm*norm);
+	} else {
+		return N * C * TMath::Power(D+norm, -n2);
+	}
 }
 
 
+
+/*
+
+   void smearPt(TLorentzVector parent){
+
+   TLorentzVector parent;
+   TLorentzVector parentSmear;
+
+
+   TF1 *fReso = new TF1("fReso","sqrt([0]*[0]*x*x+[1]*[1])",hReso->GetXaxis()->GetXmin(),hReso->GetXaxis()->GetXmax());
+   fReso->SetParameters(0.003,0.006);
+   fReso->SetRange(0.2,15);
+
+
+
+   Double_t epsig = 0.01;
+   epsig = fdPtSig->Eval();
+   Double_t smeppt = eppt*(1. +momShape->GetRandom()*epsig/0.01);
+
+   Double_t empt = daughterN.Pt();
+   Double_t emeta = daughterN.Eta();
+   Double_t emphi = daughterN.Phi();
+
+   Double_t emsig = 0.01;
+   emsig = fdPtSig->Eval(empt);
+   Double_t smempt  = empt*(1. + momShape->GetRandom()*emsig/0.01);
+
+   TLorentzVector smdaughterP(0,0,0,0);
+   TLorentzVector smdaughterN(0,0,0,0);
+   smdaughterP.SetPtEtaPhiM(smeppt,epeta,epphi,eMass);
+   smdaughterN.SetPtEtaPhiM(smempt,emeta,emphi,eMass);
+
+   parentSmear = smdaughterP + smdaughterN;
+   }
+
+
+*/
 
 
