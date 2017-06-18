@@ -74,8 +74,10 @@ Int_t StMyJpsiEffMaker::Init()
 
 	if(uncertainty==12) Aplus = 0.3825;
 	if(uncertainty==13) Aminus = 0.3825;
-	if(uncertainty==14) Bplus = 0.1233;
-	if(uncertainty==15) Bminus = 0.1233;
+//	if(uncertainty==14) Bplus = 0.1233;
+//	if(uncertainty==15) Bminus = 0.1233;
+	if(uncertainty==14) Bplus = 0.0133904;
+	if(uncertainty==15) Bminus = 0.0133904;
 	if(uncertainty==16) Aplus = 0.5408;
 	if(uncertainty==17) Aminus = 0.5408;
 	if(uncertainty==18) Bplus = 0.1743;
@@ -180,6 +182,12 @@ Int_t StMyJpsiEffMaker::Init()
 
 	fReso = new TF1("fReso","sqrt([0]*[0]*x*x+[1]*[1])",0,20);
 	fReso->SetParameters(reso);
+	if(uncertainty==1){
+		fReso->SetParameter(1,reso[0]+resoErr[0]);
+	}
+	else if(uncertainty==2){
+		fReso->SetParameter(1,reso[0]-resoErr[0]);
+	}
 	fReso->SetNpx(1000);
 
 	inf.open("ptsmearing/dpt_CBfit.txt");
@@ -382,8 +390,13 @@ Int_t StMyJpsiEffMaker::Make()
 				TRandom *rcRand2 = new TRandom();
 				double rcPt1 = (mElectron->pt)*(1+rcRand1->Gaus(0,mSmearingFac*(mElectron->pt)));
 				double rcPt2 = (mElectron2->pt)*(1+rcRand2->Gaus(0,mSmearingFac*(mElectron2->pt)));
-				double mcPt1 = (mElectron->mcPt)*(1+rcRand1->Gaus(0,mSmearingFac*(mElectron->mcPt)));
-				double mcPt2 = (mElectron2->mcPt)*(1+rcRand2->Gaus(0,mSmearingFac*(mElectron2->mcPt)));
+//				double mcPt1 = (mElectron->mcPt)*(1+rcRand1->Gaus(0,mSmearingFac*(mElectron->mcPt)));
+//				double mcPt2 = (mElectron2->mcPt)*(1+rcRand2->Gaus(0,mSmearingFac*(mElectron2->mcPt)));
+				
+				double mcPt1 =smearElecPt(mcPt1,fReso,fmomShape);
+				double mcPt2 =smearElecPt(mcPt2,fReso,fmomShape);
+
+
 				if(mElectron->geantId==2 && mElectron2->geantId==3){
 					//					ePosMc.SetPtEtaPhiM(mElectron->mcPt, mElectron->mcEta, mElectron->mcPhi, EMASS);
 					ePosMc.SetPtEtaPhiM(mcPt1, mElectron->mcEta, mElectron->mcPhi, EMASS);
@@ -495,9 +508,9 @@ Int_t StMyJpsiEffMaker::Make()
 				Double_t pe1 = (e1>0.1)? p1/e1:9999;
 				Double_t pt1 = mElectron->pt;
 				//	if(mDoSmearing) pt1=pt1*(1.+mRan->Gaus(0,mSmearingFac*pt1));	
-				cout<<"pt1 ====="<<pt1<<endl;
-				if(mDoSmearing) pt1 = smearElecPt(pt1,fReso,fmomShape);	
-				cout<<"pt1 ====="<<pt1<<endl;
+//				cout<<"pt1 ====="<<pt1<<endl;
+//				if(mDoSmearing) pt1 = smearElecPt(pt1,fReso,fmomShape);	
+//				cout<<"pt1 ====="<<pt1<<endl;
 				Double_t nEta1 = mElectron->nEta;
 				Double_t nPhi1 = mElectron->nPhi;
 				Double_t zDist1 = mElectron->zDist;
@@ -547,10 +560,10 @@ Int_t StMyJpsiEffMaker::Make()
 				Double_t p2 = mElectron2->p;
 				Double_t pe2 = (e2>0.1)? p2/e2:9999;
 				Double_t pt2 = mElectron2->pt;
-				cout<<"pt2======="<<pt2<<endl;
+//				cout<<"pt2======="<<pt2<<endl;
 				//				if(mDoSmearing) pt2 = pt2*(1+mRan->Gaus(0,mSmearingFac*pt2));
-				if(mDoSmearing) pt2 = smearElecPt(pt2,fReso,fmomShape);
-				cout<<"pt2======="<<pt2<<endl;
+//				if(mDoSmearing) pt2 = smearElecPt(pt2,fReso,fmomShape);
+//				cout<<"pt2======="<<pt2<<endl;
 				Double_t nEta2 = mElectron2->nEta;
 				Double_t nPhi2 = mElectron2->nPhi;
 				Double_t zDist2 = mElectron2->zDist;
