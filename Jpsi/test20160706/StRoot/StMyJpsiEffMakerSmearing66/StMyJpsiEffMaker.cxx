@@ -230,6 +230,16 @@ Int_t StMyJpsiEffMaker::Init()
 	hJpsiPhiInvMPt1->Sumw2();
 	hJpsiPhiInvMPtCS1->Sumw2();
 
+	hMBJpsiPtInvM = new TH2F("hMBJpsiPtInvM","hMBJpsiPtInvM;p_{T} GeV/c;m_{ee} GeV/c^2",120,0,30,40,2,4);
+	hHT0JpsiPtInvM = new TH2F("hHT0JpsiPtInvM","hHT0JpsiPtInvM;p_{T} GeV/c;m_{ee} GeV/c^2",120,0,30,40,2,4);
+	hHT1JpsiPtInvM = new TH2F("hHT1JpsiPtInvM","hHT1JpsiPtInvM;p_{T} GeV/c;m_{ee} GeV/c^2",120,0,30,40,2,4);
+	hHT2JpsiPtInvM = new TH2F("hHT2JpsiPtInvM","hHT2JpsiPtInvM;p_{T} GeV/c;m_{ee} GeV/c^2",120,0,30,40,2,4);
+
+	hMBJpsiPtInvM->Sumw2();
+	hHT0JpsiPtInvM->Sumw2();
+	hHT1JpsiPtInvM->Sumw2();
+	hHT2JpsiPtInvM->Sumw2();
+
 	//	hMBdsmAdcInvMPt = new TH3F("hMBdsmAdcInvMPt","hMBdsmAdcInvMPt",65,0,65,40,2,4,120,0,30);
 	//	hMBdsmAdcInvMPtBG = new TH3F("hMBdsmAdcInvMPtBG","hMBdsmAdcInvMPtBG",65,0,65,40,2,4,120,0,30);
 	//	hMBAdcInvMPt = new TH3F("hMBAdcInvMPt","hMBAdcInvMPt",800,0,800,40,2,4,120,0,30);
@@ -508,9 +518,7 @@ Int_t StMyJpsiEffMaker::Make()
 				Double_t pe1 = (e1>0.1)? p1/e1:9999;
 				Double_t pt1 = mElectron->pt;
 				//	if(mDoSmearing) pt1=pt1*(1.+mRan->Gaus(0,mSmearingFac*pt1));	
-//				cout<<"pt1 ====="<<pt1<<endl;
 //				if(mDoSmearing) pt1 = smearElecPt(pt1,fReso,fmomShape);	
-//				cout<<"pt1 ====="<<pt1<<endl;
 				Double_t nEta1 = mElectron->nEta;
 				Double_t nPhi1 = mElectron->nPhi;
 				Double_t zDist1 = mElectron->zDist;
@@ -672,21 +680,25 @@ Int_t StMyJpsiEffMaker::Make()
 					if((isTpc1[0] && isTpc2[0]) || (isTpc2[0] && isEmc1) || (isTpc1[0] && isEmc2) || (isEmc1 && isEmc2)) {
 						hMBJpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 						hMBJpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
+						hMBJpsiPtInvM->Fill(JpsiMc.M(),JpsiMc.Pt(),weight1);
 					}
 
 					if((isTrg1[0] && isEmc1 && isTpc2[0]) || (isTrg2[0] && isEmc2 && isTpc1[0])) {
 						cout<<"mcPt = "<<JpsiMc.Pt()<<"weight1="<<weight1<<" mass = "<<JpsiMc.M()<<endl;
 						hHT0JpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 						hHT0JpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
+						hHT0JpsiPtInvM->Fill(JpsiMc.M(),JpsiMc.Pt(),weight1);
 						testhist->Fill(27);
 					}
 					if((isTrg1[1] && isEmc1 && isTpc2[1])||(isTrg2[1] && isEmc2 && isTpc1[1])) {
 						hHT1JpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 						hHT1JpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
+						hHT1JpsiPtInvM->Fill(JpsiMc.M(),JpsiMc.Pt(),weight1);
 					}
 					if((isEmc1 && isTpc2[2] && isTrg1[2])||(isEmc2 && isTpc1[2] && isTrg2[2])) {
 						hHT2JpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 						hHT2JpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
+						hHT2JpsiPtInvM->Fill(JpsiMc.M(),JpsiMc.Pt(),weight1);
 					}
 				}
 			}
