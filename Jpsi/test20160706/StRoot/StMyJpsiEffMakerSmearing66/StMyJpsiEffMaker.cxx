@@ -74,8 +74,8 @@ Int_t StMyJpsiEffMaker::Init()
 
 	if(uncertainty==12) Aplus = 0.3825;
 	if(uncertainty==13) Aminus = 0.3825;
-//	if(uncertainty==14) Bplus = 0.1233;
-//	if(uncertainty==15) Bminus = 0.1233;
+	//	if(uncertainty==14) Bplus = 0.1233;
+	//	if(uncertainty==15) Bminus = 0.1233;
 	if(uncertainty==14) Bplus = 0.0133904;
 	if(uncertainty==15) Bminus = 0.0133904;
 	if(uncertainty==16) Aplus = 0.5408;
@@ -400,12 +400,11 @@ Int_t StMyJpsiEffMaker::Make()
 				TRandom *rcRand2 = new TRandom();
 				double rcPt1 = (mElectron->pt)*(1+rcRand1->Gaus(0,mSmearingFac*(mElectron->pt)));
 				double rcPt2 = (mElectron2->pt)*(1+rcRand2->Gaus(0,mSmearingFac*(mElectron2->pt)));
-//				double mcPt1 = (mElectron->mcPt)*(1+rcRand1->Gaus(0,mSmearingFac*(mElectron->mcPt)));
-//				double mcPt2 = (mElectron2->mcPt)*(1+rcRand2->Gaus(0,mSmearingFac*(mElectron2->mcPt)));
-				
-				double mcPt1 =smearElecPt(mcPt1,fReso,fmomShape);
-				double mcPt2 =smearElecPt(mcPt2,fReso,fmomShape);
+				//				double mcPt1 = (mElectron->mcPt)*(1+rcRand1->Gaus(0,mSmearingFac*(mElectron->mcPt)));
+				//				double mcPt2 = (mElectron2->mcPt)*(1+rcRand2->Gaus(0,mSmearingFac*(mElectron2->mcPt)));
 
+				double mcPt1 =smearElecPt(mElectron->mcPt,fReso,fmomShape);
+				double mcPt2 =smearElecPt(mElectron2->mcPt,fReso,fmomShape);
 
 				if(mElectron->geantId==2 && mElectron2->geantId==3){
 					//					ePosMc.SetPtEtaPhiM(mElectron->mcPt, mElectron->mcEta, mElectron->mcPhi, EMASS);
@@ -477,22 +476,27 @@ Int_t StMyJpsiEffMaker::Make()
 
 			Double_t PtEdge[7] = {0,2,3,4,6,8,14};
 			Int_t npt;
-			for(npt=1;npt<6;npt++){
-				if(JpsiMc.Pt()>=PtEdge[npt] && JpsiMc.Pt()<PtEdge[npt+1]) {
-					polarization = lambda[npt]+dopol*lambda_err[npt]; 	
-					polarizationphi = lambdaphi[npt]+dopolphi*lambdaphi_err[npt];
-					if(polarization<-1) polarization = -1.;
-					if(polarization>1) polarization = 1.;
-					if(polarizationphi<-1) polarizationphi = -1.;
-					if(polarizationphi>1) polarizationphi = 1.;
-				}
-			}
-			weight1 = weight1*(1+polarization*costheta*costheta+polarizationphi*sintheta*sintheta*TMath::Cos(2*dphi_HX));	
-
+			/*			for(npt=1;npt<6;npt++){
+						if(JpsiMc.Pt()>=PtEdge[npt] && JpsiMc.Pt()<PtEdge[npt+1]) {
+						polarization = lambda[npt]+dopol*lambda_err[npt]; 	
+						polarizationphi = lambdaphi[npt]+dopolphi*lambdaphi_err[npt];
+						if(polarization<-1) polarization = -1.;
+						if(polarization>1) polarization = 1.;
+						if(polarizationphi<-1) polarizationphi = -1.;
+						if(polarizationphi>1) polarizationphi = 1.;
+						}
+						}
+						weight1 = weight1*(1+polarization*costheta*costheta+polarizationphi*sintheta*sintheta*TMath::Cos(2*dphi_HX));	
+						*/
 			hJpsiPtCosThetaInvM->Fill(JpsiRc.Pt(),TMath::Cos(dtheta),JpsiRc.M());
 			cout<<"Jpsi M="<<JpsiMc.M()<<"   "<<"Jpsi pt = "<<JpsiMc.Pt()<<"   "<<"weight1="<<weight1<<endl;
 			hJpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 			hJpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
+
+			hMBJpsiPtInvM->Fill(JpsiMc.Pt(),JpsiMc.M(),weight1);
+			hHT0JpsiPtInvM->Fill(JpsiMc.M(),JpsiMc.Pt(),weight1);
+			hHT1JpsiPtInvM->Fill(JpsiMc.M(),JpsiMc.Pt(),weight1);
+			hHT2JpsiPtInvM->Fill(JpsiMc.Pt(),JpsiMc.M(),weight1);
 
 			if(mElectron->id>=0 && mElectron2->id>=0){
 				bool Qualityflag[2] ={kFALSE, kFALSE};
@@ -518,7 +522,7 @@ Int_t StMyJpsiEffMaker::Make()
 				Double_t pe1 = (e1>0.1)? p1/e1:9999;
 				Double_t pt1 = mElectron->pt;
 				//	if(mDoSmearing) pt1=pt1*(1.+mRan->Gaus(0,mSmearingFac*pt1));	
-//				if(mDoSmearing) pt1 = smearElecPt(pt1,fReso,fmomShape);	
+				//				if(mDoSmearing) pt1 = smearElecPt(pt1,fReso,fmomShape);	
 				Double_t nEta1 = mElectron->nEta;
 				Double_t nPhi1 = mElectron->nPhi;
 				Double_t zDist1 = mElectron->zDist;
@@ -568,10 +572,10 @@ Int_t StMyJpsiEffMaker::Make()
 				Double_t p2 = mElectron2->p;
 				Double_t pe2 = (e2>0.1)? p2/e2:9999;
 				Double_t pt2 = mElectron2->pt;
-//				cout<<"pt2======="<<pt2<<endl;
+				//				cout<<"pt2======="<<pt2<<endl;
 				//				if(mDoSmearing) pt2 = pt2*(1+mRan->Gaus(0,mSmearingFac*pt2));
-//				if(mDoSmearing) pt2 = smearElecPt(pt2,fReso,fmomShape);
-//				cout<<"pt2======="<<pt2<<endl;
+				//				if(mDoSmearing) pt2 = smearElecPt(pt2,fReso,fmomShape);
+				//				cout<<"pt2======="<<pt2<<endl;
 				Double_t nEta2 = mElectron2->nEta;
 				Double_t nPhi2 = mElectron2->nPhi;
 				Double_t zDist2 = mElectron2->zDist;
@@ -680,25 +684,21 @@ Int_t StMyJpsiEffMaker::Make()
 					if((isTpc1[0] && isTpc2[0]) || (isTpc2[0] && isEmc1) || (isTpc1[0] && isEmc2) || (isEmc1 && isEmc2)) {
 						hMBJpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 						hMBJpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
-						hMBJpsiPtInvM->Fill(JpsiMc.M(),JpsiMc.Pt(),weight1);
 					}
 
 					if((isTrg1[0] && isEmc1 && isTpc2[0]) || (isTrg2[0] && isEmc2 && isTpc1[0])) {
 						cout<<"mcPt = "<<JpsiMc.Pt()<<"weight1="<<weight1<<" mass = "<<JpsiMc.M()<<endl;
 						hHT0JpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 						hHT0JpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
-						hHT0JpsiPtInvM->Fill(JpsiMc.M(),JpsiMc.Pt(),weight1);
 						testhist->Fill(27);
 					}
 					if((isTrg1[1] && isEmc1 && isTpc2[1])||(isTrg2[1] && isEmc2 && isTpc1[1])) {
 						hHT1JpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 						hHT1JpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
-						hHT1JpsiPtInvM->Fill(JpsiMc.M(),JpsiMc.Pt(),weight1);
 					}
 					if((isEmc1 && isTpc2[2] && isTrg1[2])||(isEmc2 && isTpc1[2] && isTrg2[2])) {
 						hHT2JpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 						hHT2JpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
-						hHT2JpsiPtInvM->Fill(JpsiMc.M(),JpsiMc.Pt(),weight1);
 					}
 				}
 			}
