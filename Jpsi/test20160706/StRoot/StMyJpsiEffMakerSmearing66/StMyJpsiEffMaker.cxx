@@ -67,13 +67,34 @@ void StMyJpsiEffMaker::Clear(Option_t* option)
 Int_t StMyJpsiEffMaker::Init()
 {
 
-	mDoSmearing = true;
-	if(uncertainty>=1 && uncertainty<=11){
-		mSmearingFac = 0.0065+0.0001*uncertainty;
-	}
+	if(uncertainty==3) DeltaB = 0.0133904;
+	if(uncertainty==4) DeltaB = -0.0133904;
 
-	if(uncertainty==12) Aplus = 0.3825;
-	if(uncertainty==13) Aminus = 0.3825;
+	if(uncertainty==10) mTpceHitsDedxCut = 15.;
+	if(uncertainty==11) mTpceDcaCut = 3.;
+
+	if(uncertainty==12) mTpceHitsFitCut = 25;
+	if(uncertainty==13) mTpceHitsFitCut = 19;
+	if(uncertainty==14) mTpceHitsFitCut = 22;
+	if(uncertainty==15) mTpceHitsFitCut = 18;
+
+	if(uncertainty==16) dsmadcfactor = 0.05;
+	if(uncertainty==17) dsmadcfactor = -0.05;
+
+	if(uncertainty==18) deltameanbeta = 1.;
+	if(uncertainty==19) deltameanbeta = -1.;
+	if(uncertainty==20) deltasigmabeta = 1.;
+	if(uncertainty==21) deltasigmabeta = -1.;
+
+	if(uncertainty==22) mEmcePECut[0] =0.2, mEmcePECut[1] = 2.2;
+
+	mDoSmearing = true;
+	/*	if(uncertainty>=1 && uncertainty<=11){
+		mSmearingFac = 0.0065+0.0001*uncertainty;
+		}
+
+		if(uncertainty==12) Aplus = 0.3825;
+		if(uncertainty==13) Aminus = 0.3825;
 	//	if(uncertainty==14) Bplus = 0.1233;
 	//	if(uncertainty==15) Bminus = 0.1233;
 	if(uncertainty==14) Bplus = 0.0133904;
@@ -106,52 +127,79 @@ Int_t StMyJpsiEffMaker::Init()
 
 	if(uncertainty==36) mTpceHitsDedxCut = 15.;
 	if(uncertainty==37) mTpceDcaCut = 3.; 
-
+	*/
 	TDatime* time = new TDatime();
 
 	betarootfile = new TFile("/star/data01/pwg/siwei/Jpsi/TOF_1_beta_mean_sigma.root");
 	betamean = (TH1F*)betarootfile->Get("Tof_mean");
 	betasigma = (TH1F*)betarootfile->Get("Tof_sigma");
-	nsigmarootfile = new TFile("Nsigma.root");
-	mean = (TH1F*)nsigmarootfile->Get("mh1mean");
-	sigma = (TH1F*)nsigmarootfile->Get("mh1sigma");
-
-	if(POL==0)meanfit = new TF1("meanfit","[0]",0.,16.5);
-	else meanfit = new TF1("meanfit","[0]+[1]*x",0.,16.5);
-	if(POL==0)sigmafit = new TF1("sigmafit","[0]",0.,16.5);
-	else sigmafit = new TF1("sigmafit","[0]+[1]*x",0.,16.5);
-	mean->Fit("meanfit","0Q");
-	sigma->Fit("sigmafit","Q0");
-
-	double para1[2];
-	para1[0] = meanfit->GetParameter(0)+meanplus*meanfit->GetParError(0)-meanminus*meanfit->GetParError(0);
-	para1[1] = sigmafit->GetParameter(0)+sigmaplus*sigmafit->GetParError(0)-sigmaminus*sigmafit->GetParError(0);
-
-	double para2[2];
-	para2[0] = meanfit->GetParameter(0)+meanplus*meanfit->GetParError(0)-meanminus*meanfit->GetParError(0);
-	para2[1] = sigmafit->GetParameter(0)+sigmaplus*sigmafit->GetParError(0)-sigmaminus*sigmafit->GetParError(0);
-
 	betafit = new TF1("betafit","[0]",0,4);
-
-	char buf[1024];
-	sprintf(buf,"rootfile%d/%s_sys%d.root",time->GetDate(),"OutFile",uncertainty);
-	f = new TFile(buf,"recreate");
-	f->cd();
-
-	myGaus = new TF1("myGaus","gaus",-6,6);
-	myGaus->SetParameters(1,para2[0],para2[1]);
-
-	myGaus_1 = new TF1("myGaus_1","gaus",-6,6);
-	myGaus_1->SetParameters(1,para1[0],para1[1]);	
 
 	betaGaus1 = new TF1("betaGaus1","gaus",0.9,1.1);
 	betaGaus2 = new TF1("betaGaus2","gaus",0.9,1.1);
 
-	function_sigma = new TF1("function_sigma","[0]+[1]*x+[2]*x*x",0,30);	   
-	function_sigma->SetParameters(1.77250e-2,3.18836e-3,1.68829e-3);
-
 	function_tofeff = new TF1("function_tofeff","[0]*exp(-pow([1]/x,[2]))",0,30);
 	function_tofeff->SetParameters(1.77250e-2,3.18836e-3,1.68829e-3);
+	/*
+	   nsigmarootfile = new TFile("Nsigma.root");
+	   mean = (TH1F*)nsigmarootfile->Get("mh1mean");
+	   sigma = (TH1F*)nsigmarootfile->Get("mh1sigma");
+
+	   if(POL==0)meanfit = new TF1("meanfit","[0]",0.,16.5);
+	   else meanfit = new TF1("meanfit","[0]+[1]*x",0.,16.5);
+	   if(POL==0)sigmafit = new TF1("sigmafit","[0]",0.,16.5);
+	   else sigmafit = new TF1("sigmafit","[0]+[1]*x",0.,16.5);
+	   mean->Fit("meanfit","0Q");
+	   sigma->Fit("sigmafit","Q0");
+	   */
+
+	double para[2];
+
+	nsigmarootfile = new TFile("nsigmae_fit.root","read");
+	meanfit = (TF1*)nsigmarootfile->Get("mean1");
+	sigmafit = (TF1*)nsigmarootfile->Get("sigma1");
+
+	if(uncertainty>=5 && uncertainty<=6){	
+		meanfit = (TF1*)nsigmarootfile->Get(Form("mean%d",uncertainty-3));
+		para[0] = meanfit->GetParameter(0);
+	}
+	if(uncertainty>=7 && uncertainty<=8){
+		sigmafit = (TF1*)nsigmarootfile->Get(Form("sigma%d",uncertainty-6));
+		para[1] = sigmafit->GetParameter(0);	
+	}
+	/*
+	   double para1[2];
+	//	para1[0] = meanfit->GetParameter(0)+meanplus*meanfit->GetParError(0)-meanminus*meanfit->GetParError(0);
+	//	para1[1] = sigmafit->GetParameter(0)+sigmaplus*sigmafit->GetParError(0)-sigmaminus*sigmafit->GetParError(0);
+	para1[0] = meanfit->GetParameter(0)+deltamean*meanfit->GetParError(0);
+	para1[1] = sigmafit->GetParameter(0)+deltasigma*sigmafit->GetParError(0);
+
+	double para2[2];
+	//	para2[0] = meanfit->GetParameter(0)+meanplus*meanfit->GetParError(0)-meanminus*meanfit->GetParError(0);
+	//	para2[1] = sigmafit->GetParameter(0)+sigmaplus*sigmafit->GetParError(0)-sigmaminus*sigmafit->GetParError(0);
+	para2[0] = meanfit->GetParameter(0)+deltamean*meanfit->GetParError(0);
+	para2[1] = sigmafit->GetParameter(0)+deltasigma*sigmafit->GetParError(0);
+	*/
+	char buf[1024];
+	sprintf(buf,"rootfile%d/%s_sys%d.root",time->GetDate(),"OutFile",uncertainty);
+	f = new TFile(buf,"recreate");
+	f->cd();
+	/*
+	   myGaus = new TF1("myGaus","gaus",-6,6);
+	   myGaus->SetParameters(1,para2[0],para2[1]);
+
+	   myGaus_1 = new TF1("myGaus_1","gaus",-6,6);
+	   myGaus_1->SetParameters(1,para1[0],para1[1]);	
+	   */
+	myGaus = new TF1("myGaus","gaus",-6,6);
+	myGaus->SetParameters(1,para[0],para[1]);
+
+	myGaus_1 = new TF1("myGaus_1","gaus",-6,6);
+	myGaus_1->SetParameters(1,para[0],para[1]);
+
+
+	function_sigma = new TF1("function_sigma","[0]+[1]*x+[2]*x*x",0,30);	   
+	function_sigma->SetParameters(1.77250e-2,3.18836e-3,1.68829e-3);
 
 	ifstream inf("tofeff/Eminus_TofEff_all_7.root_tofeffEMCMat_err.txt");
 	cout<<"e-"<<endl;
@@ -428,7 +476,8 @@ Int_t StMyJpsiEffMaker::Make()
 			nJpsi++;
 
 			//	Double_t weight1 = 4.32*TMath::Power(1+(JpsiMc.Pt()/4.10)*(JpsiMc.Pt()/4.10), -6)*(JpsiMc.Pt())*TMath::Exp(-0.5*(JpsiMc.Rapidity()*JpsiMc.Rapidity())/(1.416*1.416));
-			Double_t weight1 = (A+Aplus-Aminus)*TMath::Power(1+(JpsiMc.Pt()/(B+Bplus-Bminus))*(JpsiMc.Pt()/(B+Bplus-Bminus)), -6)*(JpsiMc.Pt());
+			//			Double_t weight1 = (A+Aplus-Aminus)*TMath::Power(1+(JpsiMc.Pt()/(B+DeltaB))*(JpsiMc.Pt()/(B+DeltaB)), -6)*(JpsiMc.Pt());
+			Double_t weight1 = A*TMath::Power(1+(JpsiMc.Pt()/(B+DeltaB))*(JpsiMc.Pt()/(B+DeltaB)), -6)*(JpsiMc.Pt());
 			if(rapidity)weight1 = weight1*TMath::Exp(-0.5*(JpsiMc.Rapidity()*JpsiMc.Rapidity())/(1.416*1.416));
 
 
@@ -473,31 +522,32 @@ Int_t StMyJpsiEffMaker::Make()
 			Double_t dtheta_CS = ZZ.Angle(ePosMcRest.Vect());
 			Double_t dphi_CS = TMath::ATan2(ePosMcRest.Vect().Dot(YY.Unit()),ePosMcRest.Vect().Dot(XX.Unit()));
 			Double_t dphi_HX = TMath::ATan2(ePosMcRest.Vect().Dot(YYHX.Unit()),ePosMcRest.Vect().Dot(XXHX.Unit()));
-
-			Double_t PtEdge[7] = {0,2,3,4,6,8,14};
-			Int_t npt;
-			/*			for(npt=1;npt<6;npt++){
-						if(JpsiMc.Pt()>=PtEdge[npt] && JpsiMc.Pt()<PtEdge[npt+1]) {
-						polarization = lambda[npt]+dopol*lambda_err[npt]; 	
-						polarizationphi = lambdaphi[npt]+dopolphi*lambdaphi_err[npt];
-						if(polarization<-1) polarization = -1.;
-						if(polarization>1) polarization = 1.;
-						if(polarizationphi<-1) polarizationphi = -1.;
-						if(polarizationphi>1) polarizationphi = 1.;
-						}
-						}
-						weight1 = weight1*(1+polarization*costheta*costheta+polarizationphi*sintheta*sintheta*TMath::Cos(2*dphi_HX));	
-						*/
+			/*
+			   Double_t PtEdge[7] = {0,2,3,4,6,8,14};
+			   Int_t npt;
+			   for(npt=1;npt<6;npt++){
+			   if(JpsiMc.Pt()>=PtEdge[npt] && JpsiMc.Pt()<PtEdge[npt+1]) {
+			   polarization = lambda[npt]+dopol*lambda_err[npt]; 	
+			   polarizationphi = lambdaphi[npt]+dopolphi*lambdaphi_err[npt];
+			   if(polarization<-1) polarization = -1.;
+			   if(polarization>1) polarization = 1.;
+			   if(polarizationphi<-1) polarizationphi = -1.;
+			   if(polarizationphi>1) polarizationphi = 1.;
+			   }
+			   }
+			   weight1 = weight1*(1+polarization*costheta*costheta+polarizationphi*sintheta*sintheta*TMath::Cos(2*dphi_HX));	
+			   */
 			hJpsiPtCosThetaInvM->Fill(JpsiRc.Pt(),TMath::Cos(dtheta),JpsiRc.M());
 			cout<<"Jpsi M="<<JpsiMc.M()<<"   "<<"Jpsi pt = "<<JpsiMc.Pt()<<"   "<<"weight1="<<weight1<<endl;
 			hJpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 			hJpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
 
-			hMBJpsiPtInvM->Fill(JpsiMc.Pt(),JpsiMc.M(),weight1);
-			hHT0JpsiPtInvM->Fill(JpsiMc.M(),JpsiMc.Pt(),weight1);
-			hHT1JpsiPtInvM->Fill(JpsiMc.M(),JpsiMc.Pt(),weight1);
-			hHT2JpsiPtInvM->Fill(JpsiMc.Pt(),JpsiMc.M(),weight1);
-
+			/*		
+					hMBJpsiPtInvM->Fill(JpsiMc.Pt(),JpsiMc.M(),weight1);
+					hHT0JpsiPtInvM->Fill(JpsiMc.Pt(),JpsiMc.M(),weight1);
+					hHT1JpsiPtInvM->Fill(JpsiMc.Pt(),JpsiMc.M(),weight1);
+					hHT2JpsiPtInvM->Fill(JpsiMc.Pt(),JpsiMc.M(),weight1);
+					*/
 			if(mElectron->id>=0 && mElectron2->id>=0){
 				bool Qualityflag[2] ={kFALSE, kFALSE};
 				double eta1 = mElectron->eta;
@@ -530,16 +580,19 @@ Int_t StMyJpsiEffMaker::Make()
 				Double_t nHitsdedx1 = mElectron->nDedxPts;
 				Double_t nsigma1 = myGaus_1->GetRandom();
 
-				double polpara[2][2];
-				if(POL==1){
-					polpara[0][0]=meanfit->GetParameter(0);
-					polpara[0][1]=meanfit->GetParameter(1);
-					polpara[1][0]=sigmafit->GetParameter(0);
-					polpara[1][1]=sigmafit->GetParameter(1);
-					myGaus_1->SetParameters(1,polpara[0][0]+polpara[0][1]*pt1,polpara[1][0]+polpara[1][1]*pt1);
-					cout<<"         "<<myGaus_1->GetParameter(1)<<"         "<<myGaus_1->GetParameter(2)<<endl;
-					nsigma1 = myGaus_1->GetRandom();
-				}
+				if(uncertainty==9) myGaus_1->SetParameters(1,meanfit->Eval(pt1),sigmafit->Eval(pt1));
+				/*
+				   double polpara[2][2];
+				   if(POL==1){
+				   polpara[0][0]=meanfit->GetParameter(0);
+				   polpara[0][1]=meanfit->GetParameter(1);
+				   polpara[1][0]=sigmafit->GetParameter(0);
+				   polpara[1][1]=sigmafit->GetParameter(1);
+				   myGaus_1->SetParameters(1,polpara[0][0]+polpara[0][1]*pt1,polpara[1][0]+polpara[1][1]*pt1);
+				   cout<<"         "<<myGaus_1->GetParameter(1)<<"         "<<myGaus_1->GetParameter(2)<<endl;
+				   nsigma1 = myGaus_1->GetRandom();
+				   }
+				   */				
 				bool isEmc1 = kFALSE,isTpc1[4],isTOF1 = kFALSE,isTrg1[4];
 				for(int iht=0;iht<4;iht++) {
 					isTrg1[iht] = kFALSE;
@@ -557,7 +610,8 @@ Int_t StMyJpsiEffMaker::Make()
 				beta1para[0][1]=betamean->GetBinError(betamean->FindBin(pEff1));
 				beta1para[1][0]=betasigma->GetBinContent(betasigma->FindBin(pEff1));
 				beta1para[1][1]=betasigma->GetBinError(betasigma->FindBin(pEff1));
-				betaGaus1->SetParameters(1,beta1para[0][0]+meanbeta*beta1para[0][1],beta1para[1][0]+sigmabeta*beta1para[1][1]);
+				//				betaGaus1->SetParameters(1,beta1para[0][0]+meanbeta*beta1para[0][1],beta1para[1][0]+sigmabeta*beta1para[1][1]);
+				betaGaus1->SetParameters(1,beta1para[0][0]+deltameanbeta*beta1para[0][1],beta1para[1][0]+deltasigmabeta*beta1para[1][1]);
 				beta1=betaGaus1->GetRandom();
 				cout<<"beta1============"<<beta1<<endl;
 
@@ -583,10 +637,13 @@ Int_t StMyJpsiEffMaker::Make()
 				Double_t nHitsdedx2 = mElectron2->nDedxPts;
 				Double_t nsigma2 = myGaus->GetRandom();
 
-				if(POL==1){
-					myGaus->SetParameters(1,polpara[0][0]+polpara[0][1]*pt2,polpara[1][0]+polpara[1][1]*pt2);
-					nsigma2=myGaus->GetRandom();
-				}
+				if(uncertainty==9) myGaus->SetParameters(1,meanfit->Eval(pt2),sigmafit->Eval(pt2));
+				/*
+				   if(POL==1){
+				   myGaus->SetParameters(1,polpara[0][0]+polpara[0][1]*pt2,polpara[1][0]+polpara[1][1]*pt2);
+				   nsigma2=myGaus->GetRandom();
+				   }
+				   */
 				bool isTpc2[4], isEmc2 = kFALSE,isTOF2 = kFALSE,isTrg2[4];
 				for(int iht=0;iht<4;iht++){
 					isTrg2[iht] = kFALSE;
@@ -604,7 +661,8 @@ Int_t StMyJpsiEffMaker::Make()
 				beta2para[0][1]=betamean->GetBinError(betamean->FindBin(pEff2));
 				beta2para[1][0]=betasigma->GetBinContent(betasigma->FindBin(pEff2));
 				beta2para[1][1]=betasigma->GetBinError(betasigma->FindBin(pEff2));
-				betaGaus2->SetParameters(1,beta2para[0][0]+meanbeta*beta2para[0][1],beta2para[1][0]+sigmabeta*beta2para[1][1]);
+				//				betaGaus2->SetParameters(1,beta2para[0][0]+meanbeta*beta2para[0][1],beta2para[1][0]+sigmabeta*beta2para[1][1]);
+				betaGaus2->SetParameters(1,beta2para[0][0]+deltameanbeta*beta2para[0][1],beta2para[1][0]+deltasigmabeta*beta2para[1][1]);
 				beta2=betaGaus2->GetRandom();
 				cout<<"beta2========"<<beta2<<endl;
 
@@ -679,9 +737,25 @@ Int_t StMyJpsiEffMaker::Make()
 					}
 				}		
 
+				if((isTpc1[0] && isTpc2[0] && isTOF1) || (isTpc1[0] && isTpc2[0] && isTOF2) || (isTpc2[0] && isEmc1) || (isTpc1[0] && isEmc2) || (isEmc1 && isEmc2)) {
+					hMBJpsiPtInvM->Fill(JpsiMc.Pt(),JpsiMc.M(),weight1);
+				}
+
+				if((isTrg1[0] && isEmc1 && isTpc2[0]) || (isTrg2[0] && isEmc2 && isTpc1[0])) {
+					hHT0JpsiPtInvM->Fill(JpsiMc.Pt(),JpsiMc.M(),weight1);
+				}
+
+				if((isTrg1[1] && isEmc1 && isTpc2[1])||(isTrg2[1] && isEmc2 && isTpc1[1])) {
+					hHT1JpsiPtInvM->Fill(JpsiMc.Pt(),JpsiMc.M(),weight1);
+				}
+
+				if((isEmc1 && isTpc2[2] && isTrg1[2])||(isEmc2 && isTpc1[2] && isTrg2[2])) {
+					hHT2JpsiPtInvM->Fill(JpsiMc.Pt(),JpsiMc.M(),weight1);
+				}
+		
 				testhist->Fill(26);	
 				if(JpsiRc.M()>3.0 && JpsiRc.M()<3.2){
-					if((isTpc1[0] && isTpc2[0]) || (isTpc2[0] && isEmc1) || (isTpc1[0] && isEmc2) || (isEmc1 && isEmc2)) {
+					if((isTpc1[0] && isTpc2[0] && isTOF1) || (isTpc1[0] && isTpc2[0] && isTOF2) || (isTpc2[0] && isEmc1) || (isTpc1[0] && isEmc2) || (isEmc1 && isEmc2)) {
 						hMBJpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 						hMBJpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
 					}
