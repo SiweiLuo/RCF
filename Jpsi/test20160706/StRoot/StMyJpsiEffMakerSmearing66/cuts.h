@@ -23,7 +23,7 @@ const Double_t mTpcenSigmaElectronCut[2] = {-1.9,3};
 
 const Double_t mTpceBetaCut[2] = {0.97,1.03};
 
-const Double_t mPairYCut[2] = {-1,1};
+const Double_t mPairYCut[2] = {-1.,1.};
 const Double_t mJpsiMassCut = 1.0;
 
 Double_t mSmearingFac = 0.;
@@ -33,7 +33,14 @@ Double_t polarization = 0.;
 Double_t polarizationphi = 0.;
 
 Double_t A = 4.32, Aplus =0., Aminus =0.;
-Double_t B = 4.10, Bplus =0., Bminus =0.;
+Double_t B = 4.10, DeltaB = 0., Bplus =0., Bminus =0.;
+
+//Double_t A = 3.8, Aplus =0., Aminus =0.;
+//Double_t B = 4.45, DeltaB = 0.;
+
+//Double_t A = 2.534, Aplus =0., Aminus =0.;
+//Double_t B = 4.501, DeltaB = 0.2924;
+
 const Int_t rapidity = 1;
 
 Double_t meanplus = 0.,meanminus = 0.;
@@ -42,7 +49,7 @@ Double_t sigmaplus = 0.,sigmaminus = 0.;
 const Double_t Htplus = 0.,Htminus = 0.;
 const Double_t betaplus = 0., betaminus = 0.;
 const Double_t tofmatching=0.;
-Double_t meanbeta=0.,sigmabeta=0.;
+Double_t deltameanbeta=0.,deltasigmabeta=0.;
 Int_t POL=0;
 Double_t dsmadcfactor=1.;
 

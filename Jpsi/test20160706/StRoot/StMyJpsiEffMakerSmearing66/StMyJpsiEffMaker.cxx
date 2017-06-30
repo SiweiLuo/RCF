@@ -164,9 +164,16 @@ Int_t StMyJpsiEffMaker::Init()
 		para[0] = meanfit->GetParameter(0);
 	}
 	if(uncertainty>=7 && uncertainty<=8){
-		sigmafit = (TF1*)nsigmarootfile->Get(Form("sigma%d",uncertainty-6));
+		sigmafit = (TF1*)nsigmarootfile->Get(Form("sigma%d",uncertainty-5));
 		para[1] = sigmafit->GetParameter(0);	
 	}
+
+	if(uncertainty==9){
+		meanfit = (TF1*)nsigmarootfile->Get("mean4");
+		sigmafit = (TF1*)nsigmarootfile->Get("sigma4");
+	}
+
+
 	/*
 	   double para1[2];
 	//	para1[0] = meanfit->GetParameter(0)+meanplus*meanfit->GetParError(0)-meanminus*meanfit->GetParError(0);
@@ -446,13 +453,25 @@ Int_t StMyJpsiEffMaker::Make()
 			if(mDoSmearing){
 				TRandom *rcRand1 = new TRandom();
 				TRandom *rcRand2 = new TRandom();
-				double rcPt1 = (mElectron->pt)*(1+rcRand1->Gaus(0,mSmearingFac*(mElectron->pt)));
-				double rcPt2 = (mElectron2->pt)*(1+rcRand2->Gaus(0,mSmearingFac*(mElectron2->pt)));
+//				double rcPt1 = (mElectron->pt)*(1+rcRand1->Gaus(0,mSmearingFac*(mElectron->pt)));
+//				double rcPt2 = (mElectron2->pt)*(1+rcRand2->Gaus(0,mSmearingFac*(mElectron2->pt)));
+
+				double rcPt1 = smearElecPt(mElectron->pt,fReso,fmomShape);
+				double rcPt2 = smearElecPt(mElectron2->pt,fReso,fmomShape);
+
 				//				double mcPt1 = (mElectron->mcPt)*(1+rcRand1->Gaus(0,mSmearingFac*(mElectron->mcPt)));
 				//				double mcPt2 = (mElectron2->mcPt)*(1+rcRand2->Gaus(0,mSmearingFac*(mElectron2->mcPt)));
+//				cout<<"mcPt1 ======="<<mElectron->mcPt<<endl;
+//				cout<<"mcPt2 ======="<<mElectron2->mcPt<<endl;
+				
+//				double mcPt1 =smearElecPt(mElectron->mcPt,fReso,fmomShape);
+//				double mcPt2 =smearElecPt(mElectron2->mcPt,fReso,fmomShape);
 
-				double mcPt1 =smearElecPt(mElectron->mcPt,fReso,fmomShape);
-				double mcPt2 =smearElecPt(mElectron2->mcPt,fReso,fmomShape);
+				double mcPt1 = mElectron->mcPt;
+				double mcPt2 = mElectron2->mcPt;
+
+//				cout<<"after smearing mcPt1 ========="<<mcPt1<<endl;
+//				cout<<"after smearing mcPt2 ========="<<mcPt2<<endl;
 
 				if(mElectron->geantId==2 && mElectron2->geantId==3){
 					//					ePosMc.SetPtEtaPhiM(mElectron->mcPt, mElectron->mcEta, mElectron->mcPhi, EMASS);
@@ -738,23 +757,24 @@ Int_t StMyJpsiEffMaker::Make()
 				}		
 
 				if((isTpc1[0] && isTpc2[0] && isTOF1) || (isTpc1[0] && isTpc2[0] && isTOF2) || (isTpc2[0] && isEmc1) || (isTpc1[0] && isEmc2) || (isEmc1 && isEmc2)) {
-					hMBJpsiPtInvM->Fill(JpsiMc.Pt(),JpsiMc.M(),weight1);
+					hMBJpsiPtInvM->Fill(JpsiRc.Pt(),JpsiRc.M(),weight1);
 				}
 
 				if((isTrg1[0] && isEmc1 && isTpc2[0]) || (isTrg2[0] && isEmc2 && isTpc1[0])) {
-					hHT0JpsiPtInvM->Fill(JpsiMc.Pt(),JpsiMc.M(),weight1);
+					hHT0JpsiPtInvM->Fill(JpsiRc.Pt(),JpsiRc.M(),weight1);
 				}
 
 				if((isTrg1[1] && isEmc1 && isTpc2[1])||(isTrg2[1] && isEmc2 && isTpc1[1])) {
-					hHT1JpsiPtInvM->Fill(JpsiMc.Pt(),JpsiMc.M(),weight1);
+					hHT1JpsiPtInvM->Fill(JpsiRc.Pt(),JpsiRc.M(),weight1);
 				}
 
 				if((isEmc1 && isTpc2[2] && isTrg1[2])||(isEmc2 && isTpc1[2] && isTrg2[2])) {
-					hHT2JpsiPtInvM->Fill(JpsiMc.Pt(),JpsiMc.M(),weight1);
+					hHT2JpsiPtInvM->Fill(JpsiRc.Pt(),JpsiRc.M(),weight1);
 				}
 		
 				testhist->Fill(26);	
 				if(JpsiRc.M()>3.0 && JpsiRc.M()<3.2){
+//				if(JpsiMc.M()>3.0 && JpsiMc.M()<3.2){
 					if((isTpc1[0] && isTpc2[0] && isTOF1) || (isTpc1[0] && isTpc2[0] && isTOF2) || (isTpc2[0] && isEmc1) || (isTpc1[0] && isEmc2) || (isEmc1 && isEmc2)) {
 						hMBJpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 						hMBJpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
