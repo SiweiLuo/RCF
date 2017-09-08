@@ -174,12 +174,12 @@ Int_t StMyJpsiEffMaker::Init()
 	inf.close();
 
 	fReso = new TF1("fReso","sqrt([0]*[0]*x*x+[1]*[1])",0,20);
-	fReso->SetParameters(reso);
+	//	fReso->SetParameters(reso);
 	if(uncertainty==1){
-		fReso->SetParameter(1,reso[0]+resoErr[0]);
+		fReso->SetParameter(0,reso[0]+resoErr[0]);
 	}
 	else if(uncertainty==2){
-		fReso->SetParameter(1,reso[0]-resoErr[0]);
+		fReso->SetParameter(0,reso[0]-resoErr[0]);
 	}
 	fReso->SetNpx(1000);
 
@@ -368,6 +368,36 @@ Int_t StMyJpsiEffMaker::Init()
 	ht1trigpt_levy->Sumw2();
 	ht2trigpt_levy->Sumw2();
 
+	//1eid
+	mbtrigpt1 = new TH1F("mbtrigpt1","mbtrigpt1",120,0,30);
+	ht0trigpt1 = new TH1F("ht0trigpt1","ht0trigpt1",120,0,30);	
+	ht1trigpt1 = new TH1F("ht1trigpt1","ht1trigpt1",120,0,30);
+	ht2trigpt1 = new TH1F("ht2trigpt1","ht2trigpt1",120,0,30);
+	mbtrigpt1->Sumw2();
+	ht0trigpt1->Sumw2();
+	ht1trigpt1->Sumw2();
+	ht2trigpt1->Sumw2();
+
+	mbtrigpt_no_eta1 = new TH1F("mbtrigpt_no_eta1","mbtrigpt_no_eta1",120,0,30);	
+	ht0trigpt_no_eta1 = new TH1F("ht0trigpt_no_eta1","ht0trigpt_no_eta1",120,0,30);	
+	ht1trigpt_no_eta1 = new TH1F("ht1trigpt_no_eta1","ht1trigpt_no_eta1",120,0,30);
+	ht2trigpt_no_eta1 = new TH1F("ht2trigpt_no_eta1","ht2trigpt_no_eta1",120,0,30);
+	mbtrigpt_no_eta1->Sumw2();
+	ht0trigpt_no_eta1->Sumw2();
+	ht1trigpt_no_eta1->Sumw2();
+	ht2trigpt_no_eta1->Sumw2();
+
+	mbtrigpt_levy1 = new TH1F("mbtrigpt_levy1","mbtrigpt_levy1",120,0,30);	
+	ht0trigpt_levy1 = new TH1F("ht0trigpt_levy1","ht0trigpt_levy1",120,0,30);	
+	ht1trigpt_levy1 = new TH1F("ht1trigpt_levy1","ht1trigpt_levy1",120,0,30);
+	ht2trigpt_levy1 = new TH1F("ht2trigpt_levy1","ht2trigpt_levy1",120,0,30);
+	mbtrigpt_levy1->Sumw2();
+	ht0trigpt_levy1->Sumw2();
+	ht1trigpt_levy1->Sumw2();
+	ht2trigpt_levy1->Sumw2();
+	//1eid
+
+
 	ht0trigpt_levy_no_eta = new TH1F("ht0trigpt_levy_no_eta","ht0trigpt_levy_no_eta",120,0,30);	
 	ht1trigpt_levy_no_eta = new TH1F("ht1trigpt_levy_no_eta","ht1trigpt_levy_no_eta",120,0,30);
 	ht2trigpt_levy_no_eta = new TH1F("ht2trigpt_levy_no_eta","ht2trigpt_levy_no_eta",120,0,30);
@@ -375,26 +405,67 @@ Int_t StMyJpsiEffMaker::Init()
 	ht1trigpt_levy_no_eta->Sumw2();
 	ht2trigpt_levy_no_eta->Sumw2();
 
+	mbtrigrapidity_levy = new TH1F("mbtrigrapidity_levy","mbtrigrapidity_levy",30,-1.5,1.5);	
 	ht0trigrapidity_levy = new TH1F("ht0trigrapidity_levy","ht0trigrapidity_levy",30,-1.5,1.5);	
 	ht1trigrapidity_levy = new TH1F("ht1trigrapidity_levy","ht1trigrapidity_levy",30,-1.5,1.5);
 	ht2trigrapidity_levy = new TH1F("ht2trigrapidity_levy","ht2trigrapidity_levy",30,-1.5,1.5);
+	mbtrigrapidity_levy->Sumw2();
 	ht0trigrapidity_levy->Sumw2();
 	ht1trigrapidity_levy->Sumw2();
 	ht2trigrapidity_levy->Sumw2();
 
+	mbtrigrapidity_levy_no_eta = new TH1F("mbtrigrapidity_levy_no_eta","mbtrigrapidity_levy_no_eta",30,-1.5,1.5);	
 	ht0trigrapidity_levy_no_eta = new TH1F("ht0trigrapidity_levy_no_eta","ht0trigrapidity_levy_no_eta",30,-1.5,1.5);	
 	ht1trigrapidity_levy_no_eta = new TH1F("ht1trigrapidity_levy_no_eta","ht1trigrapidity_levy_no_eta",30,-1.5,1.5);
 	ht2trigrapidity_levy_no_eta = new TH1F("ht2trigrapidity_levy_no_eta","ht2trigrapidity_levy_no_eta",30,-1.5,1.5);
+	mbtrigrapidity_levy_no_eta->Sumw2();
 	ht0trigrapidity_levy_no_eta->Sumw2();
 	ht1trigrapidity_levy_no_eta->Sumw2();
 	ht2trigrapidity_levy_no_eta->Sumw2();
 
+	mbtrigrapidity_barbara = new TH1F("mbtrigrapidity_barbara","mbtrigrapidity_barbara",30,-1.5,1.5);	
 	ht0trigrapidity_barbara = new TH1F("ht0trigrapidity_barbara","ht0trigrapidity_barbara",30,-1.5,1.5);	
 	ht1trigrapidity_barbara = new TH1F("ht1trigrapidity_barbara","ht1trigrapidity_barbara",30,-1.5,1.5);
 	ht2trigrapidity_barbara = new TH1F("ht2trigrapidity_barbara","ht2trigrapidity_barbara",30,-1.5,1.5);
+	mbtrigrapidity_barbara->Sumw2();
 	ht0trigrapidity_barbara->Sumw2();
 	ht1trigrapidity_barbara->Sumw2();
 	ht2trigrapidity_barbara->Sumw2();
+
+
+//1eid
+	mbtrigrapidity_levy1 = new TH1F("mbtrigrapidity_levy1","mbtrigrapidity_levy1",30,-1.5,1.5);	
+	ht0trigrapidity_levy1 = new TH1F("ht0trigrapidity_levy1","ht0trigrapidity_levy1",30,-1.5,1.5);	
+	ht1trigrapidity_levy1 = new TH1F("ht1trigrapidity_levy1","ht1trigrapidity_levy1",30,-1.5,1.5);
+	ht2trigrapidity_levy1 = new TH1F("ht2trigrapidity_levy1","ht2trigrapidity_levy1",30,-1.5,1.5);
+	mbtrigrapidity_levy1->Sumw2();
+	ht0trigrapidity_levy1->Sumw2();
+	ht1trigrapidity_levy1->Sumw2();
+	ht2trigrapidity_levy1->Sumw2();
+
+	mbtrigrapidity_levy_no_eta1 = new TH1F("mbtrigrapidity_levy_no_eta1","mbtrigrapidity_levy_no_eta1",30,-1.5,1.5);	
+	ht0trigrapidity_levy_no_eta1 = new TH1F("ht0trigrapidity_levy_no_eta1","ht0trigrapidity_levy_no_eta1",30,-1.5,1.5);	
+	ht1trigrapidity_levy_no_eta1 = new TH1F("ht1trigrapidity_levy_no_eta1","ht1trigrapidity_levy_no_eta1",30,-1.5,1.5);
+	ht2trigrapidity_levy_no_eta1 = new TH1F("ht2trigrapidity_levy_no_eta1","ht2trigrapidity_levy_no_eta1",30,-1.5,1.5);
+	mbtrigrapidity_levy_no_eta1->Sumw2();
+	ht0trigrapidity_levy_no_eta1->Sumw2();
+	ht1trigrapidity_levy_no_eta1->Sumw2();
+	ht2trigrapidity_levy_no_eta1->Sumw2();
+
+	mbtrigrapidity_barbara1 = new TH1F("mbtrigrapidity_barbara1","mbtrigrapidity_barbara1",30,-1.5,1.5);	
+	ht0trigrapidity_barbara1 = new TH1F("ht0trigrapidity_barbara1","ht0trigrapidity_barbara1",30,-1.5,1.5);	
+	ht1trigrapidity_barbara1 = new TH1F("ht1trigrapidity_barbara1","ht1trigrapidity_barbara1",30,-1.5,1.5);
+	ht2trigrapidity_barbara1 = new TH1F("ht2trigrapidity_barbara1","ht2trigrapidity_barbara1",30,-1.5,1.5);
+	mbtrigrapidity_barbara1->Sumw2();
+	ht0trigrapidity_barbara1->Sumw2();
+	ht1trigrapidity_barbara1->Sumw2();
+	ht2trigrapidity_barbara1->Sumw2();
+//1eid
+
+
+
+
+
 
 	mbpartnerpt = new TH1F("mbpartnerpt","mbpartnerpt",120,0,30);	
 	ht0partnerpt = new TH1F("ht0partnerpt","ht0partnerpt",120,0,30);	
@@ -431,7 +502,44 @@ Int_t StMyJpsiEffMaker::Init()
 	ht0partnerpt_levy->Sumw2();
 	ht1partnerpt_levy->Sumw2();
 	ht2partnerpt_levy->Sumw2();
+	//1eid
+	mbpartnerpt1 = new TH1F("mbpartnerpt1","mbpartnerpt1",120,0,30);	
+	ht0partnerpt1 = new TH1F("ht0partnerpt1","ht0partnerpt1",120,0,30);	
+	ht1partnerpt1 = new TH1F("ht1partnerpt1","ht1partnerpt1",120,0,30);
+	ht2partnerpt1 = new TH1F("ht2partnerpt1","ht2partnerpt1",120,0,30);
+	mbpartnerpt1->Sumw2();
+	ht0partnerpt1->Sumw2();
+	ht1partnerpt1->Sumw2();
+	ht2partnerpt1->Sumw2();
 
+	mbpartnerpt_no_eta1 = new TH1F("mbpartnerpt_no_eta1","mbpartnerpt_no_eta1",120,0,30);	
+	ht0partnerpt_no_eta1 = new TH1F("ht0partnerpt_no_eta1","ht0partnerpt_no_eta1",120,0,30);	
+	ht1partnerpt_no_eta1 = new TH1F("ht1partnerpt_no_eta1","ht1partnerpt_no_eta1",120,0,30);
+	ht2partnerpt_no_eta1 = new TH1F("ht2partnerpt_no_eta1","ht2partnerpt_no_eta1",120,0,30);
+	mbpartnerpt_no_eta1->Sumw2();
+	ht0partnerpt_no_eta1->Sumw2();
+	ht1partnerpt_no_eta1->Sumw2();
+	ht2partnerpt_no_eta1->Sumw2();
+
+	mbpartnerpt_levy_no_eta1 = new TH1F("mbpartnerpt_levy_no_eta1","mbpartnerpt_levy_no_eta1",120,0,30);	
+	ht0partnerpt_levy_no_eta1 = new TH1F("ht0partnerpt_levy_no_eta1","ht0partnerpt_levy_no_eta1",120,0,30);	
+	ht1partnerpt_levy_no_eta1 = new TH1F("ht1partnerpt_levy_no_eta1","ht1partnerpt_levy_no_eta1",120,0,30);
+	ht2partnerpt_levy_no_eta1 = new TH1F("ht2partnerpt_levy_no_eta1","ht2partnerpt_levy_no_eta1",120,0,30);
+	mbpartnerpt_levy_no_eta1->Sumw2();
+	ht0partnerpt_levy_no_eta1->Sumw2();
+	ht1partnerpt_levy_no_eta1->Sumw2();
+	ht2partnerpt_levy_no_eta1->Sumw2();
+
+	mbpartnerpt_levy1 = new TH1F("mbpartnerpt_levy1","mbpartnerpt_levy1",120,0,30);	
+	ht0partnerpt_levy1 = new TH1F("ht0partnerpt_levy1","ht0partnerpt_levy1",120,0,30);	
+	ht1partnerpt_levy1 = new TH1F("ht1partnerpt_levy1","ht1partnerpt_levy1",120,0,30);
+	ht2partnerpt_levy1 = new TH1F("ht2partnerpt_levy1","ht2partnerpt_levy1",120,0,30);
+	mbpartnerpt_levy1->Sumw2();
+	ht0partnerpt_levy1->Sumw2();
+	ht1partnerpt_levy1->Sumw2();
+	ht2partnerpt_levy1->Sumw2();
+	//1eid
+//2eid
 	ht0partnerrapidity_levy = new TH1F("ht0partnerrapidity_levy","ht0partnerrapidity_levy",30,-1.5,1.5);	
 	ht1partnerrapidity_levy = new TH1F("ht1partnerrapidity_levy","ht1partnerrapidity_levy",30,-1.5,1.5);
 	ht2partnerrapidity_levy = new TH1F("ht2partnerrapidity_levy","ht2partnerrapidity_levy",30,-1.5,1.5);
@@ -452,7 +560,32 @@ Int_t StMyJpsiEffMaker::Init()
 	ht0partnerrapidity_barbara->Sumw2();
 	ht1partnerrapidity_barbara->Sumw2();
 	ht2partnerrapidity_barbara->Sumw2();
+//2eid
 
+//1eid
+	ht0partnerrapidity_levy1 = new TH1F("ht0partnerrapidity_levy1","ht0partnerrapidity_levy1",30,-1.5,1.5);	
+	ht1partnerrapidity_levy1 = new TH1F("ht1partnerrapidity_levy1","ht1partnerrapidity_levy1",30,-1.5,1.5);
+	ht2partnerrapidity_levy1 = new TH1F("ht2partnerrapidity_levy1","ht2partnerrapidity_levy1",30,-1.5,1.5);
+	ht0partnerrapidity_levy1->Sumw2();
+	ht1partnerrapidity_levy1->Sumw2();
+	ht2partnerrapidity_levy1->Sumw2();
+
+	ht0partnerrapidity_levy_no_eta1 = new TH1F("ht0partnerrapidity_levy_no_eta1","ht0partnerrapidity_levy_no_eta1",30,-1.5,1.5);	
+	ht1partnerrapidity_levy_no_eta1 = new TH1F("ht1partnerrapidity_levy_no_eta1","ht1partnerrapidity_levy_no_eta1",30,-1.5,1.5);
+	ht2partnerrapidity_levy_no_eta1 = new TH1F("ht2partnerrapidity_levy_no_eta1","ht2partnerrapidity_levy_no_eta1",30,-1.5,1.5);
+	ht0partnerrapidity_levy_no_eta1->Sumw2();
+	ht1partnerrapidity_levy_no_eta1->Sumw2();
+	ht2partnerrapidity_levy_no_eta1->Sumw2();
+
+	ht0partnerrapidity_barbara1 = new TH1F("ht0partnerrapidity_barbara1","ht0partnerrapidity_barbara1",30,-1.5,1.5);	
+	ht1partnerrapidity_barbara1 = new TH1F("ht1partnerrapidity_barbara1","ht1partnerrapidity_barbara1",30,-1.5,1.5);
+	ht2partnerrapidity_barbara1 = new TH1F("ht2partnerrapidity_barbara1","ht2partnerrapidity_barbara1",30,-1.5,1.5);
+	ht0partnerrapidity_barbara1->Sumw2();
+	ht1partnerrapidity_barbara1->Sumw2();
+	ht2partnerrapidity_barbara1->Sumw2();
+
+
+//1eid
 
 	ht0trigpoe = new TH1F("ht0trigpoe","ht0trigpoe",100,0,4);
 	ht1trigpoe = new TH1F("ht1trigpoe","ht1trigpoe",100,0,4);
@@ -837,11 +970,11 @@ Int_t StMyJpsiEffMaker::Make()
 				Double_t e1 = mElectron->energy0;	
 				Double_t adc01 = mElectron->adc0;
 				Double_t dsmAdc01 = mElectron->dsmAdc0;
-			//	Double_t pt1 = mElectron->pt;		
+				//	Double_t pt1 = mElectron->pt;		
 				Double_t pt1 = rcPt1;
 				TLorentzVector track1(0,0,0,0);
 				track1.SetPtEtaPhiM(pt1,eta1,phi1,EMASS);			
-			//	Double_t p1 = mElectron->p;
+				//	Double_t p1 = mElectron->p;
 				Double_t p1 = track1.P();
 				Double_t pe1 = (e1>0.1)? p1/e1:9999;
 				//				Double_t pt1 = rcPt1;
@@ -860,9 +993,9 @@ Int_t StMyJpsiEffMaker::Make()
 				Double_t e2 = mElectron2->energy0;
 				Double_t adc02 = mElectron2->adc0;
 				Double_t dsmAdc02 = mElectron2->dsmAdc0;
-		//		Double_t p2 = mElectron2->p;
+				//		Double_t p2 = mElectron2->p;
 				//				Double_t pt2 = rcPt2;
-//				Double_t pt2 = mElectron2->pt;
+				//				Double_t pt2 = mElectron2->pt;
 				Double_t pt2 = rcPt2;
 				TLorentzVector track2(0,0,0,0);
 				track2.SetPtEtaPhiM(pt2,eta2,phi2,EMASS);
@@ -1056,6 +1189,20 @@ Int_t StMyJpsiEffMaker::Make()
 						hMBJpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),levyweight);
 
 						mbjpsipt1->Fill(JpsiRc.Pt(),weight1);
+						
+						mbtrigpt1->Fill(pt1,weight1);
+						mbtrigpt1->Fill(pt2,weight1);
+						mbtrigpt_no_eta1->Fill(pt1,levyweight);
+						mbtrigpt_no_eta1->Fill(pt2,levyweight);
+						mbtrigpt_levy1->Fill(pt1,levyweight_rapidity);
+						mbtrigpt_levy1->Fill(pt2,levyweight_rapidity);	
+					
+						mbtrigrapidity_levy1->Fill(eta1,levyweight_rapidity);
+						mbtrigrapidity_levy1->Fill(eta2,levyweight_rapidity);
+						mbtrigrapidity_levy_no_eta1->Fill(eta1,levyweight);
+						mbtrigrapidity_levy_no_eta1->Fill(eta2,levyweight);
+						mbtrigrapidity_barbara1->Fill(eta1,weight1);
+						mbtrigrapidity_barbara1->Fill(eta2,weight1);
 					}
 
 					if((isTrg1[0] && isEmc1 && isTpc2[0]) || (isTrg2[0] && isEmc2 && isTpc1[0])) {
@@ -1068,6 +1215,34 @@ Int_t StMyJpsiEffMaker::Make()
 
 						ht0jpsipt1->Fill(JpsiRc.Pt(),weight1);
 						testhist->Fill(27);
+						if(isTrg1[0]){
+							ht0trigpt1->Fill(pt1,weight1);
+							ht0trigpt_levy1->Fill(pt1,levyweight_rapidity);
+							ht0trigpt_no_eta1->Fill(pt1,levyweight);		
+							ht0partnerpt1->Fill(pt2,weight1);
+							ht0partnerpt_levy1->Fill(pt2,levyweight_rapidity);
+							ht0partnerpt_levy_no_eta1->Fill(pt2,levyweight);
+							ht0trigrapidity_levy1->Fill(eta1,levyweight_rapidity);
+							ht0trigrapidity_levy_no_eta1->Fill(eta1,levyweight);
+							ht0trigrapidity_barbara1->Fill(eta1,weight1);
+							ht0partnerrapidity_levy1->Fill(eta2,levyweight_rapidity);
+							ht0partnerrapidity_levy_no_eta1->Fill(eta2,levyweight);
+							ht0partnerrapidity_barbara1->Fill(eta2,weight1);
+						}
+						else if(isTrg2[0]){
+							ht0trigpt1->Fill(pt2,weight1);
+							ht0trigpt_levy1->Fill(pt2,levyweight_rapidity);
+							ht0trigpt_no_eta1->Fill(pt2,levyweight);
+							ht0partnerpt1->Fill(pt1,weight1);
+							ht0partnerpt_levy1->Fill(pt1,levyweight_rapidity);
+							ht0partnerpt_levy_no_eta1->Fill(pt1,levyweight);
+							ht0trigrapidity_levy1->Fill(eta2,levyweight_rapidity);
+							ht0trigrapidity_levy_no_eta1->Fill(eta2,levyweight);
+							ht0trigrapidity_barbara1->Fill(eta2,weight1);
+							ht0partnerrapidity_levy1->Fill(eta1,levyweight_rapidity);
+							ht0partnerrapidity_levy_no_eta1->Fill(eta1,levyweight);
+							ht0partnerrapidity_barbara1->Fill(eta1,weight1);
+						}
 					}
 					if((isTrg1[1] && isEmc1 && isTpc2[1])||(isTrg2[1] && isEmc2 && isTpc1[1])) {
 						//		hHT1JpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
@@ -1076,6 +1251,34 @@ Int_t StMyJpsiEffMaker::Make()
 						hHT1JpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),levyweight);
 
 						ht1jpsipt1->Fill(JpsiRc.Pt(),weight1);
+						if(isTrg1[1]){
+							ht1trigpt1->Fill(pt1,weight1);
+							ht1trigpt_levy1->Fill(pt1,levyweight_rapidity);
+							ht1trigpt_no_eta1->Fill(pt1,levyweight);
+							ht1partnerpt1->Fill(pt2,weight1);
+							ht1partnerpt_levy1->Fill(pt2,levyweight_rapidity);
+							ht1partnerpt_levy_no_eta1->Fill(pt2,levyweight);
+							ht1trigrapidity_levy1->Fill(eta1,levyweight_rapidity);
+							ht1trigrapidity_levy_no_eta1->Fill(eta1,levyweight);
+							ht1trigrapidity_barbara1->Fill(eta1,weight1);
+							ht1partnerrapidity_levy1->Fill(eta2,levyweight_rapidity);
+							ht1partnerrapidity_levy_no_eta1->Fill(eta2,levyweight);
+							ht1partnerrapidity_barbara1->Fill(eta2,weight1);
+						}
+						else if(isTrg2[1]){
+							ht1trigpt1->Fill(pt2,weight1);
+							ht1trigpt_levy1->Fill(pt2,levyweight_rapidity);
+							ht1trigpt_no_eta1->Fill(pt2,levyweight);
+							ht1partnerpt1->Fill(pt1,weight1);
+							ht1partnerpt_levy1->Fill(pt1,levyweight_rapidity);
+							ht1partnerpt_levy_no_eta1->Fill(pt1,levyweight);
+							ht1trigrapidity_levy1->Fill(eta2,levyweight_rapidity);
+							ht1trigrapidity_levy_no_eta1->Fill(eta2,levyweight);
+							ht1trigrapidity_barbara1->Fill(eta2,weight1);
+							ht1partnerrapidity_levy1->Fill(eta1,levyweight_rapidity);
+							ht1partnerrapidity_levy_no_eta1->Fill(eta1,levyweight);
+							ht1partnerrapidity_barbara1->Fill(eta1,weight1);
+						}
 					}
 					if((isEmc1 && isTpc2[2] && isTrg1[2])||(isEmc2 && isTpc1[2] && isTrg2[2])) {
 						//						hHT2JpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
@@ -1085,6 +1288,34 @@ Int_t StMyJpsiEffMaker::Make()
 						hHT2JpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),levyweight);
 
 						ht2jpsipt1->Fill(JpsiRc.Pt(),weight1);
+						if(isTrg1[2]){
+							ht2trigpt1->Fill(pt1,weight1);
+							ht2trigpt_levy1->Fill(pt1,levyweight_rapidity);
+							ht2trigpt_no_eta1->Fill(pt1,levyweight);
+							ht2partnerpt1->Fill(pt2,weight1);
+							ht2partnerpt_levy1->Fill(pt2,levyweight_rapidity);
+							ht2partnerpt_levy_no_eta1->Fill(pt2,levyweight);
+							ht2trigrapidity_levy1->Fill(eta1,levyweight_rapidity);
+							ht2trigrapidity_levy_no_eta1->Fill(eta1,levyweight);
+							ht2trigrapidity_barbara1->Fill(eta1,weight1);
+							ht2partnerrapidity_levy1->Fill(eta2,levyweight_rapidity);
+							ht2partnerrapidity_levy_no_eta1->Fill(eta2,levyweight);
+							ht2partnerrapidity_barbara1->Fill(eta2,weight1);
+						}
+						else if (isTrg2[2]){
+							ht2trigpt1->Fill(pt2,weight1);
+							ht2trigpt_levy1->Fill(pt2,levyweight_rapidity);
+							ht2trigpt_no_eta1->Fill(pt2,levyweight);
+							ht2partnerpt1->Fill(pt1,weight1);
+							ht2partnerpt_levy1->Fill(pt1,levyweight_rapidity);
+							ht2partnerpt_levy_no_eta1->Fill(pt1,levyweight);
+							ht2trigrapidity_levy1->Fill(eta2,levyweight_rapidity);
+							ht2trigrapidity_levy_no_eta1->Fill(eta2,levyweight);
+							ht2trigrapidity_barbara1->Fill(eta2,weight1);
+							ht2partnerrapidity_levy1->Fill(eta1,levyweight_rapidity);
+							ht2partnerrapidity_levy_no_eta1->Fill(eta1,levyweight);
+							ht2partnerrapidity_barbara1->Fill(eta1,weight1);
+						}
 					}
 
 					// 2eID observation histogram 
@@ -1097,7 +1328,7 @@ Int_t StMyJpsiEffMaker::Make()
 						mbjpsipt_no_eta->Fill(JpsiRc.Pt(),ptweight);
 						mbjpsiptlevy->Fill(JpsiRc.Pt(),levyweight_rapidity);
 						mbjpsiptlevy_no_eta->Fill(JpsiRc.Pt(),levyweight);
-						
+
 						mbjpsirapiditylevy->Fill(JpsiRc.Rapidity(),levyweight_rapidity);
 						mbjpsirapiditylevy_no_eta->Fill(JpsiRc.Rapidity(),levyweight);
 						mbjpsirapidity_barbara->Fill(JpsiRc.Rapidity(),weight1);	
@@ -1111,6 +1342,15 @@ Int_t StMyJpsiEffMaker::Make()
 						mbelectronptlevy_eta->Fill(pt1,levyweight_rapidity);
 						mbelectronptlevy_eta->Fill(pt2,levyweight_rapidity);
 
+					
+						mbtrigrapidity_levy->Fill(eta1,levyweight_rapidity);	
+						mbtrigrapidity_levy->Fill(eta2,levyweight_rapidity);	
+						
+						mbtrigrapidity_levy_no_eta->Fill(eta1,levyweight);
+						mbtrigrapidity_levy_no_eta->Fill(eta2,levyweight);
+
+						mbtrigrapidity_barbara->Fill(eta1,weight1);
+						mbtrigrapidity_barbara->Fill(eta2,weight1);
 					}
 					//			cout<<"electrons are "<<" emc and tof "<<isTrg1[0]<<" isEmc1 "<<isEmc1<<" isTOF2 "<<isTOF2<<"  isTrg2"<<isTrg2[0]<<"   isEmc2"<<isEmc2<<"   isTOF1  "<<isTOF1<<endl;
 
