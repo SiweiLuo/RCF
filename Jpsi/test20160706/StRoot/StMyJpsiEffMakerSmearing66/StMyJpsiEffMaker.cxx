@@ -1419,7 +1419,7 @@ Int_t StMyJpsiEffMaker::Make()
 					}
 
 					// 2eID observation histogram 
-					if((isTOF1 && isTOF2 && isTpc1[0] && isTpc2[0]) || (isEmc1 && isEmc2 && isTpc1[0] && isTpc2[0]) || (isEmc1 && isTOF2 && isTpc1[0] && isTpc2[0]) || (isEmc2 && isTOF1 && isTpc1[0] && isTpc2[0])){
+					if((isTOF1 && isTOF2 && isTpc1[0] && isTpc2[0]) || (isEmc1 && isEmc2 ) || (isEmc1 && isTOF2 && isTpc2[0]) || (isEmc2 && isTOF1 && isTpc1[0])){
 						//					hMBJpsiCosThetaPhiPt2->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 						//					hMBJpsiCosThetaPhiPt2->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 						hMBJpsiCosThetaPhiPt2->Fill(costheta,dphi_HX,JpsiMc.Pt(),levyweight_rapidity);
