@@ -20,6 +20,9 @@
 #include "TRandom3.h"
 #include "TVector3.h"
 #include "TDatime.h"
+#include "TCanvas.h"
+#include "TPaveLabel.h"
+#include "TText.h"
 
 #include "cuts.h"
 
@@ -71,26 +74,26 @@ Int_t StMyJpsiEffMaker::Init()
 
 	mDoSmearing = true;
 
-	if(uncertainty==3) DeltaB = 0.0133904;
-	if(uncertainty==4) DeltaB = -0.0133904;
+	if(uncertainty==1) DeltaB = 0.0133904;
+	if(uncertainty==2) DeltaB = -0.0133904;
 
-	if(uncertainty==10) mTpceHitsDedxCut = 15.;
-	if(uncertainty==11) mTpceDcaCut = 3.;
+	if(uncertainty==3) mTpceHitsDedxCut = 15.;
+	if(uncertainty==4) mTpceDcaCut = 3.;
 
-	if(uncertainty==12) mTpceHitsFitCut = 25;
-	if(uncertainty==13) mTpceHitsFitCut = 19;
-	if(uncertainty==14) mTpceHitsFitCut = 22;
-	if(uncertainty==15) mTpceHitsFitCut = 18;
+	if(uncertainty==5) mTpceHitsFitCut = 25;
+	if(uncertainty==6) mTpceHitsFitCut = 19;
+	if(uncertainty==7) mTpceHitsFitCut = 22;
+	if(uncertainty==8) mTpceHitsFitCut = 18;
 
-	if(uncertainty==16) dsmadcfactor = 1.05;
-	if(uncertainty==17) dsmadcfactor = 0.95;
+	if(uncertainty==9) dsmadcfactor = 1.05;
+	if(uncertainty==10) dsmadcfactor = 0.95;
 
-	if(uncertainty==18) deltameanbeta = 1.;
-	if(uncertainty==19) deltameanbeta = -1.;
-	if(uncertainty==20) deltasigmabeta = 1.;
-	if(uncertainty==21) deltasigmabeta = -1.;
+	if(uncertainty==11) deltameanbeta = 1.;
+	if(uncertainty==12) deltameanbeta = -1.;
+	if(uncertainty==13) deltasigmabeta = 1.;
+	if(uncertainty==14) deltasigmabeta = -1.;
 
-	if(uncertainty==22) mEmcePECut[0] =0.2, mEmcePECut[1] = 2.2;
+	if(uncertainty==15) mEmcePECut[0] =0.2, mEmcePECut[1] = 2.2;
 
 
 	betarootfile = new TFile("/star/data01/pwg/siwei/Jpsi/TOF_1_beta_mean_sigma.root");
@@ -802,6 +805,21 @@ Int_t StMyJpsiEffMaker::Init()
 	hHt0JpsiPETOFHad->Sumw2();
 	hHt1JpsiPETOFHad->Sumw2();
 	hHt2JpsiPETOFHad->Sumw2();
+
+	TCanvas *cutscanvas = new TCanvas("cuts","cuts",100,10,700,900);
+	cutscanvas->Range(0,0,20,24);
+	cutscanvas->SetFillColor(10);
+	cutscanvas->SetBorderSize(2);
+	TPaveLabel *pl = new TPaveLabel(3,22,17,23.7,"cuts configuration","br");
+	pl->SetFillColor(18);
+	pl->Draw();
+	
+	TText t(0,0,"a");
+	t.SetTextFont(62);
+	t.SetTextSize(0.025);
+	t.SetTextAlign(12);
+	t.DrawText(2,20.3,Form("%f < vzTpc < %f",mVzCut[0],mVzCut[1]));
+
 
 	Clear("");
 	return kStOK;
