@@ -920,25 +920,26 @@ Int_t StMyJpsiEffMaker::Make()
 
 			//			TRandom *rcRand1 = new TRandom();
 			//			TRandom *rcRand2 = new TRandom();
+//			double rcPt1 = mElectron->pt;
+//			double rcPt2 = mElectron2->pt;
+
 			// do Smearing 
-//			double rcPt1 = smearElecPt(mElectron->pt,fReso,fmomShape);
-//			double rcPt2 = smearElecPt(mElectron2->pt,fReso,fmomShape);
+			double rcPt1 = smearElecPt(mElectron->pt,fReso,fmomShape);
+			double rcPt2 = smearElecPt(mElectron2->pt,fReso,fmomShape);
 			// do Smearing
-			double rcPt1 = mElectron->pt;
-			double rcPt2 = mElectron2->pt;
 
 			// without smearing
 			//						double rcPt1 = mElectron->pt;
 			//						double rcPt2 = mElectron2->pt;
 			// without smearing
 
-//			double mcPt1 = mElectron->mcPt;
-//			double mcPt2 = mElectron2->mcPt;
+			double mcPt1 = mElectron->mcPt;
+			double mcPt2 = mElectron2->mcPt;
 
 
 			// do Smearing
-			double mcPt1 = smearElecPt(mElectron->pt,fReso,fmomShape);
-			double mcPt2 = smearElecPt(mElectron2->pt,fReso,fmomShape);			
+//			double mcPt1 = smearElecPt(mElectron->mcPt,fReso,fmomShape);
+//			double mcPt2 = smearElecPt(mElectron2->mcPt,fReso,fmomShape);			
 			// do Smearing 
 
 			if(mElectron->geantId==2 && mElectron2->geantId==3){
@@ -1025,10 +1026,23 @@ Int_t StMyJpsiEffMaker::Make()
 
 			hJpsiPtCosThetaInvM->Fill(JpsiRc.Pt(),TMath::Cos(dtheta),JpsiRc.M());
 			//cout<<"Jpsi M="<<JpsiMc.M()<<"   "<<"Jpsi pt = "<<JpsiMc.Pt()<<"   "<<"weight1="<<weight1<<endl;
+	// Barbara weight
+	/*
 			hJpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 			hJpsiCosThetaPhiPt2->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 			hJpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
 			hJpsiCosThetaPhiPtCS2->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
+	*/
+	// Barbara weight
+	//
+	// Bingchu weight
+			hJpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),levyweight_rapidity);
+			hJpsiCosThetaPhiPt2->Fill(costheta,dphi_HX,JpsiMc.Pt(),levyweight_rapidity);
+			hJpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),levyweight_rapidity);
+			hJpsiCosThetaPhiPtCS2->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),levyweight_rapidity);
+	// Bingchu weight
+	
+	
 			jpsipt->Fill(JpsiMc.Pt(),weight1);
 			/*
 			   if(mElectron->id>=0 && mElectron2->id>=0){
