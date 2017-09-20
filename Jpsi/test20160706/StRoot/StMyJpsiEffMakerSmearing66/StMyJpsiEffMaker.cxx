@@ -920,12 +920,12 @@ Int_t StMyJpsiEffMaker::Make()
 
 			//			TRandom *rcRand1 = new TRandom();
 			//			TRandom *rcRand2 = new TRandom();
-//			double rcPt1 = mElectron->pt;
-//			double rcPt2 = mElectron2->pt;
+			double rcPt1 = mElectron->pt;
+			double rcPt2 = mElectron2->pt;
 
 			// do Smearing 
-			double rcPt1 = smearElecPt(mElectron->pt,fReso,fmomShape);
-			double rcPt2 = smearElecPt(mElectron2->pt,fReso,fmomShape);
+//			double rcPt1 = smearElecPt(mElectron->pt,fReso,fmomShape);
+//			double rcPt2 = smearElecPt(mElectron2->pt,fReso,fmomShape);
 			// do Smearing
 
 			// without smearing
@@ -933,13 +933,13 @@ Int_t StMyJpsiEffMaker::Make()
 			//						double rcPt2 = mElectron2->pt;
 			// without smearing
 
-			double mcPt1 = mElectron->mcPt;
-			double mcPt2 = mElectron2->mcPt;
+//			double mcPt1 = mElectron->mcPt;
+//			double mcPt2 = mElectron2->mcPt;
 
 
 			// do Smearing
-//			double mcPt1 = smearElecPt(mElectron->mcPt,fReso,fmomShape);
-//			double mcPt2 = smearElecPt(mElectron2->mcPt,fReso,fmomShape);			
+			double mcPt1 = smearElecPt(mElectron->mcPt,fReso,fmomShape);
+			double mcPt2 = smearElecPt(mElectron2->mcPt,fReso,fmomShape);			
 			// do Smearing 
 
 			if(mElectron->geantId==2 && mElectron2->geantId==3){
