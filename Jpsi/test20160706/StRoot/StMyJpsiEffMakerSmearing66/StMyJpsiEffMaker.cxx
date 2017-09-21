@@ -177,6 +177,8 @@ Int_t StMyJpsiEffMaker::Init()
 	inf.close();
 
 	fReso = new TF1("fReso","sqrt([0]*[0]*x*x+[1]*[1])",0,20);
+	fReso->SetParameters(reso);
+	cout<<" fReso parameters "<<fReso->GetParameter(0)<<"    "<<fReso->GetParameter(1)<<endl;
 	//	fReso->SetParameters(reso);
 	if(uncertainty==1){
 		fReso->SetParameter(0,reso[0]+resoErr[0]);
