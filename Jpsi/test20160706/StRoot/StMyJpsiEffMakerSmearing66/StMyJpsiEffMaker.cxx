@@ -192,12 +192,14 @@ Int_t StMyJpsiEffMaker::Init()
 	double pars[7],parsErr[7];
 	for(int i=0;i<7;i++){
 		inf>>pars[i]>>parsErr[i];
+		cout<<"fmomShape parameters = "<<pars[i]<<"   "<<parsErr[i]<<endl;
 	}
 	inf.close();
 
 	fmomShape = new TF1("fmomShape", CrystalBall2, -1., 1., 7);
 	fmomShape->SetParameters(pars);
 	fmomShape->SetNpx(1000);
+	cout<<" fmomShape "<<fmomShape->GetParameter(0)<<"   "<<fmomShape->GetParameter(1)<<"   "<<fmomShape->GetParameter(2)<<"   "<<fmomShape->GetParameter(3)<<"   "<<fmomShape->GetParameter(4)<<"   "<<fmomShape->GetParameter(5)<<"   "<<fmomShape->GetParameter(6)<<endl;
 
 	//hMCElectronPt = new TH1D("mcElectronPt","input electron pt",300,0,30);
 	testhist = new TH1F("test","test",30,0,30);
@@ -922,12 +924,12 @@ Int_t StMyJpsiEffMaker::Make()
 
 			//			TRandom *rcRand1 = new TRandom();
 			//			TRandom *rcRand2 = new TRandom();
-			double rcPt1 = mElectron->pt;
-			double rcPt2 = mElectron2->pt;
+//			double rcPt1 = mElectron->pt;
+//			double rcPt2 = mElectron2->pt;
 
 			// do Smearing 
-//			double rcPt1 = smearElecPt(mElectron->pt,fReso,fmomShape);
-//			double rcPt2 = smearElecPt(mElectron2->pt,fReso,fmomShape);
+			double rcPt1 = smearElecPt(mElectron->mcPt,fReso,fmomShape);
+			double rcPt2 = smearElecPt(mElectron2->mcPt,fReso,fmomShape);
 			// do Smearing
 
 			// without smearing
@@ -935,13 +937,13 @@ Int_t StMyJpsiEffMaker::Make()
 			//						double rcPt2 = mElectron2->pt;
 			// without smearing
 
-//			double mcPt1 = mElectron->mcPt;
-//			double mcPt2 = mElectron2->mcPt;
+			double mcPt1 = mElectron->mcPt;
+			double mcPt2 = mElectron2->mcPt;
 
 
 			// do Smearing
-			double mcPt1 = smearElecPt(mElectron->mcPt,fReso,fmomShape);
-			double mcPt2 = smearElecPt(mElectron2->mcPt,fReso,fmomShape);			
+//			double mcPt1 = smearElecPt(mElectron->mcPt,fReso,fmomShape);
+//			double mcPt2 = smearElecPt(mElectron2->mcPt,fReso,fmomShape);			
 			// do Smearing 
 
 			if(mElectron->geantId==2 && mElectron2->geantId==3){
