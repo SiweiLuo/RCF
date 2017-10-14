@@ -74,8 +74,8 @@ Int_t StMyJpsiEffMaker::Init()
 
 	mDoSmearing = true;
 
-	if(uncertainty==1) DeltaB = 0.0133904;
-	if(uncertainty==2) DeltaB = -0.0133904;
+//	if(uncertainty==1) DeltaB = 0.0133904;
+//	if(uncertainty==2) DeltaB = -0.0133904;
 
 	if(uncertainty==3) mTpceHitsDedxCut = 15.;
 	if(uncertainty==4) mTpceDcaCut = 3.;
@@ -116,17 +116,17 @@ Int_t StMyJpsiEffMaker::Init()
 	para[1] = sigmafit->GetParameter(0);
 
 	//cout<<"nsigma parameters ==="<<para[0]<<"    "<<para[1]<<endl;
-
-	if(uncertainty>=5 && uncertainty<=6){	
-		meanfit = (TF1*)nsigmarootfile->Get(Form("mean%d",uncertainty-3));
+/*
+	if(uncertainty>=16 && uncertainty<=17){	
+		meanfit = (TF1*)nsigmarootfile->Get(Form("mean%d",uncertainty-14));
 		para[0] = meanfit->GetParameter(0);
 	}
-	if(uncertainty>=7 && uncertainty<=8){
-		sigmafit = (TF1*)nsigmarootfile->Get(Form("sigma%d",uncertainty-5));
+	if(uncertainty>=18 && uncertainty<=19){
+		sigmafit = (TF1*)nsigmarootfile->Get(Form("sigma%d",uncertainty-16));
 		para[1] = sigmafit->GetParameter(0);	
 	}
-
-	if(uncertainty==9){
+*/
+	if(uncertainty==16){
 		meanfit = (TF1*)nsigmarootfile->Get("mean4");
 		sigmafit = (TF1*)nsigmarootfile->Get("sigma4");
 	}
@@ -146,6 +146,9 @@ Int_t StMyJpsiEffMaker::Init()
 	fLevy = new TF1("fLevy","[0]*x*sqrt(2)/TMath::Power(1+(sqrt(x*x+3.0969*3.0969)-1.865)/[1]/[2],[1])",0,15);
 	fLevy->SetParameters(3.39805e+02,8.96953e+00,2.10824e-01);
 
+	fPowLaw = new TF1("fPowLaw","[0]*TMath::Power(1+x*x/[1]/[1],[2])",0,20);
+	fPowLaw->SetParameters(4.90151,3.30694,-4.86445);
+	
 	function_sigma = new TF1("function_sigma","[0]+[1]*x+[2]*x*x",0,30);	   
 	function_sigma->SetParameters(1.77250e-2,3.18836e-3,1.68829e-3);
 
@@ -982,6 +985,7 @@ Int_t StMyJpsiEffMaker::Make()
 			Double_t ptweight = A*TMath::Power(1+(JpsiMc.Pt()/(B+DeltaB))*(JpsiMc.Pt()/(B+DeltaB)), -6)*(JpsiMc.Pt());
 
 			Double_t levyweight = fLevy->Eval(JpsiMc.Pt());
+			if(uncertainty==17) levyweight = fPowLaw->Eval(JpsiMc.Pt());
 			Double_t levyweight_rapidity = levyweight*TMath::Exp(-0.5*(JpsiMc.Rapidity()*JpsiMc.Rapidity())/(1.416*1.416));
 			//			weight1 = levyweight;
 
@@ -1150,7 +1154,7 @@ Int_t StMyJpsiEffMaker::Make()
 				//nsigma1 = 0.;
 				//cout<<"nsigma1  ======="<<nsigma1<<endl;
 
-				if(uncertainty==9) myGaus_1->SetParameters(1,meanfit->Eval(pt1),sigmafit->Eval(pt1));
+				if(uncertainty==16) myGaus_1->SetParameters(1,meanfit->Eval(pt1),sigmafit->Eval(pt1));
 
 				bool isEmc1 = kFALSE,isTpc1[4],isTOF1 = kFALSE,isTrg1[4];
 				for(int iht=0;iht<4;iht++) {
@@ -1164,7 +1168,7 @@ Int_t StMyJpsiEffMaker::Make()
 				//nsigma2=0.;
 				//			cout<<"nsigma2 ==========="<<nsigma2<<endl;
 
-				if(uncertainty==9) myGaus->SetParameters(1,meanfit->Eval(pt2),sigmafit->Eval(pt2));
+				if(uncertainty==16) myGaus->SetParameters(1,meanfit->Eval(pt2),sigmafit->Eval(pt2));
 
 				bool isTpc2[4], isEmc2 = kFALSE,isTOF2 = kFALSE,isTrg2[4];
 				for(int iht=0;iht<4;iht++){
