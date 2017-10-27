@@ -6,6 +6,7 @@
 #include "TFile.h"
 #include "TH2F.h"
 #include "TDirectory.h"
+#include "TGraph.h"
 #include "TMath.h"
 #include "TMinuit.h"
 #include "TRandom2.h"
@@ -39,11 +40,13 @@ Int_t NBKG = 200;
 
 TF2* fsig=new TF2("fsig","[0]*(1+[1]*y**2+[2]*(1-y**2)*cos(2*x)+[3]*sin(2*acos(y))*cos(x))",XMIN,XMAX,YMIN,YMAX);
 TF2* fbkg=new TF2("fbkg","[0]*(1+[1]*y**2+[2]*(1-y**2)*cos(2*x))",XMIN,XMAX,YMIN,YMAX);
-TF2* lsig=new TF2("lsig","[0]*(1+[1]*y**2+[2]*(1-y**2)*cos(2*x)+[3]*sin(2*acos(y))*cos(x))",XMIN,XMAX,YMIN,YMAX);
+//TF2* lsig=new TF2("lsig","[0]*(1+[1]*y**2+[2]*(1-y**2)*cos(2*x)+[3]*sin(2*acos(y))*cos(x))",XMIN,XMAX,YMIN,YMAX);
+//TF2* lsig=new TF2("lsig","[0]*(1+[1]*y**2+[2]*(1-y**2)*TMath::Cos(2*x)+[3]*TMath::Sin(2*TMath::ACos(y))*TMath::Cos(x))",XMIN,XMAX,YMIN,YMAX);
+TF2* lsig=new TF2("lsig","[0]*(1+[1]*y**2+[2]*(1-y**2)*TMath::Cos(2*x)+2*[3]*TMath::Cos(x)*y*(1-y**2)**0.5)",XMIN,XMAX,YMIN,YMAX);
 
 TH2F *hunl, *hlik, *hsig, *hbkg, *hsub;
-TH3F *hlambda, *hlambda2, *hlambda_err, *hlambda2_err;
-TH1F *hlambda_inv, *hlambda_inv_err;
+TH3F *hlambda,  *hlambda_err,  *hlambda_bf, *hlambda_err_bf;
+TH1F *hlambda_inv, *hlambda_inv_err, *hlambda_inv_bf, *hlambda_inv_err_bf;
 TGraph *gc, *gc2;
 
 TCanvas* c = new TCanvas("c","Contour List",0,0,600,600);
@@ -116,13 +119,29 @@ float likelihoodfcn(Double_t *x){
 	lsig->SetParameter(2,x[1]);
 	lsig->SetParameter(3,x[2]);
 
+	cout<<" lsig parameters := "<<lsig->GetParameter(0)<<"   "<<lsig->GetParameter(1)<<"   "<<lsig->GetParameter(2)<<"   "<<lsig->GetParameter(3)<<endl;
+
 	double phi,costheta;
 	double scale=0.;
+	double pdfv;
 	for(int i=1;i<=NBIN;i++){
 		for(int j=1;j<=NBIN;j++){
+			if(effhist->GetBinContent(i,j)!=effhist->GetBinContent(i,j))continue;
 			phi = effhist->GetXaxis()->GetBinCenter(i);
 			costheta = effhist->GetYaxis()->GetBinCenter(j);
+//			cout<<" evaluation ===== "<<lsig->Eval(phi,costheta)<<endl;
+			if(lsig->Eval(phi,costheta)!=lsig->Eval(phi,costheta)) {
+				cout<<" phi ======== "<<phi<<"  costheta ======== "<<costheta<<endl;
+				cout<<"  ACos() == "<<TMath::ACos(costheta)<<endl;
+				cout<<" Sin ===== "<<TMath::Sin(TMath::ACos(costheta))<<endl;
+				cout<<" !!!!!!!!!!!!!!!!!!!!!!! "<<endl;
+			}
+				//			pdfv = 0.5*(lsig->Eval(phi,costheta)+fabs(lsig->Eval(phi,costheta)));
+//			if(lsig->Eval(phi,costheta)<0) pdfv=0.;
+//			else pdfv = lsig->Eval(phi,costheta);
 			scale += effhist->GetBinContent(i,j)*lsig->Eval(phi,costheta);
+	//		scale += effhist->GetBinContent(i,j)*pdfv;
+	//		if(lsig->Eval(phi,costheta)!=lsig->Eval(phi,costheta))cout<<"phi ==="<<phi<<"   costheta=== "<<costheta<<"  lsig->Eval() === "<<lsig->Eval(phi,costheta)<<endl;
 		}
 	}
 	lsig->SetParameter(0,1./scale); //renormalization	
@@ -132,20 +151,26 @@ float likelihoodfcn(Double_t *x){
 	double sum=0;
 	for(int i=1;i<=NBIN;i++){
 		for(int j=1;j<=NBIN;j++){
+			sum += eff*lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j)); // check the normalization
 			if(effhist->GetBinContent(i,j)>1e-6) eff = effhist->GetBinContent(i,j);
 			else continue;
-			sum += eff*lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j)); // check the normalization
 			if(datahist->GetBinContent(i,j)<1e-6) continue;
+//			if(lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j))<0) cout<<" log negative == "<<lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j))<<endl;
+	/*
+			if(lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j)<0)) pdfv=0;
+			else pdfv = lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j));
+	*/
 			//			if(sighist->GetBinContent(i,j)<0){
 			//				cout<<"sighist negative bins*********"<<endl;
 			//			}
-			//				result += -1*sighist->GetBinContent(i,j)*TMath::Log(eff*lsig->Eval(sighist->GetXaxis()->GetBinCenter(i),sighist->GetYaxis()->GetBinCenter(j)));
+//							result += -1*sighist->GetBinContent(i,j)*TMath::Log(eff*lsig->Eval(sighist->GetXaxis()->GetBinCenter(i),sighist->GetYaxis()->GetBinCenter(j)));
 			result += -1*datahist->GetBinContent(i,j)*TMath::Log(eff*lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j)));
+//			result += -1*datahist->GetBinContent(i,j)*TMath::Log(eff*pdfv);
 			//			sum += eff*lsig->Eval(sighist->GetXaxis()->GetBinCenter(i),sighist->GetYaxis()->GetBinCenter(j)); // check the normalization
+//			if(lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j))!=lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j))) cout<<" !!!!!!!!!!!!!!!!!!!!! "<<endl;
 		}
 	}
-//	cout<<"sum ====="<<sum<<endl;
-	result*=datahist->Integral()/(tothist->Integral()+bkghist->Integral());
+	//	result*=datahist->Integral()/(tothist->Integral()+bkghist->Integral());
 	return result;
 }
 
@@ -229,17 +254,18 @@ Int_t Minimize(int sys=0,int trig,int pt,int frame){
 	static Double_t vstart[4] = {0.1, 0.1, 0.1, 0.01};
 	static Double_t step[4] = {0.2, 0.2, 0.2, 0.001};
 	//	static Double_t step[4] = {1, 1, 1, 0.001};
-	gMinuit->mnparm(0, "p1", vstart[0], step[0], -1,1,ierflg);
-	gMinuit->mnparm(1, "p2", vstart[1], step[1], -1,1,ierflg);
-	gMinuit->mnparm(2, "p3", vstart[2], step[2], -1,1,ierflg);
+	gMinuit->mnparm(0, "p1", vstart[0], step[0], -5.,5.,ierflg);
+	gMinuit->mnparm(1, "p2", vstart[1], step[1], -5.,5.,ierflg);
+	gMinuit->mnparm(2, "p3", vstart[2], step[2], -5.,5.,ierflg);
 
-	Double_t scan1list[4]={0,1000,-1,1};
-	Double_t scan2list[4]={1,1000,-1,1};
-	Double_t scan3list[4]={2,1000,-1,1};
+	Double_t scan1list[4]={0,1000,-5.,5.};
+	Double_t scan2list[4]={1,1000,-5.,5.};
+	Double_t scan3list[4]={2,1000,-5.,5.};
+	//	if(!(trig==1&&pt==1&&frame==1)){
 	gMinuit->mnexcm("SCAN",scan1list,4,ierflg);	
 	gMinuit->mnexcm("SCAN",scan2list,4,ierflg);	
 	gMinuit->mnexcm("SCAN",scan3list,4,ierflg);	
-
+	//	}
 	// Now ready for minimization step
 	arglist[0] = 5000;
 	arglist[1] = 10.;
@@ -252,8 +278,7 @@ Int_t Minimize(int sys=0,int trig,int pt,int frame){
 
 	gMinuit->mnexcm("HESSE",arglist,2,ierflg);
 	Double_t minoslist[4] = {5000,0,1,2};
-
-	gMinuit->mnexcm("MINOS",minoslist,4,ierflg);
+//	gMinuit->mnexcm("MINOS",minoslist,4,ierflg);
 
 	Double_t getlambdatheta,getlambdathetaerr,getlambdaphi,getlambdaphierr,getlambdathetaphi,getlambdathetaphierr,getlambdainv,getlambdainverr;
 
@@ -261,34 +286,75 @@ Int_t Minimize(int sys=0,int trig,int pt,int frame){
 	gMinuit->GetParameter(1,getlambdaphi,getlambdaphierr);
 	gMinuit->GetParameter(2,getlambdathetaphi,getlambdathetaphierr);
 
+	Double_t cov[3][3];
+	gMinuit->mnemat(&cov[0][0],3);
+
+	cout<<" before correction : "<<getlambdathetaerr<<"   "<<getlambdaphierr<<"   "<<getlambdathetaphierr<<endl;
+
+	hlambda_bf = new TH3F("hlambda_bf","lambdas;#lambda_{#theta};#lambda_{#phi};#lambda_{#theta#phi}",400,-5,5,400,-5,5,400,-5,5);
+	hlambda_err_bf = new TH3F("hlambda_err_bf","lambdas uncertainty;#sigma#lambda_{#theta};#sigma#lambda_{#phi};#sigma#lambda_{#theta#phi}",100,0,2,100,0,2,100,0,2);
+	hlambda_inv_bf = new TH1F("hlambda_inv_bf","hlambda_inv_bf",400,-2,2);
+	hlambda_inv_err_bf = new TH1F("hlambda_inv_err_bf","hlambda_inv_err_bf",400,0,5);
+
+	hlambda_bf->Fill(getlambdatheta,getlambdaphi,getlambdathetaphi);
+	hlambda_err_bf->Fill(getlambdathetaerr,getlambdaphierr,getlambdathetaphierr);
+
+	hlambda_inv_bf->Fill((getlambdatheta+3*getlambdaphi)/(1-getlambdaphi));
+	hlambda_inv_err_bf->Fill((cov[0][0]*(1/(1-getlambdaphi))**2+cov[1][1]*((3+getlambdatheta)/(1-getlambdaphi)**2)**2+2*(1/(1-getlambdaphi))*((3+getlambdatheta)/((1-getlambdaphi)**2))*cov[0][1])**0.5);
+
+	if(trig!=1 && pt!=1){ //correction of bias
+		TFile* mcvsdata = new TFile(Form("/star/u/siwei/polresults/20160707/MLEmethod/splot_3D_20171020_2eid_inv30_wofactor/thetavstheta_%d_%d_%d_20171023.root",trig,pt,frame),"read");	
+		TF1 *thetaline = (TF1*)mcvsdata->Get("fit1");
+		TF1 *philine = (TF1*)mcvsdata->Get("fit2");
+		TF1 *thetaphiline = (TF1*)mcvsdata->Get("fit3");
+		cout<<" get parameter initial : "<<getlambdatheta<<"      "<<getlambdaphi<<"    "<<getlambdathetaphi<<endl;
+		TF1 *thetaget = new TF1("thetaget","[0]*x+[1]",-3,3);
+		thetaget->SetParameters(1/thetaline->GetParameter(0),-1*thetaline->GetParameter(1)/thetaline->GetParameter(0));
+		getlambdatheta = thetaget->Eval(getlambdatheta);
+		TF1 *phiget = new TF1("phiget","[0]*x+[1]",-3,3);
+		phiget->SetParameters(1/philine->GetParameter(0),-1*philine->GetParameter(1)/philine->GetParameter(0));
+		getlambdaphi = thetaget->Eval(getlambdaphi);
+		TF1 *thetaphiget = new TF1("thetaphiget","[0]*x+[1]",-3,3);
+		thetaphiget->SetParameters(1/thetaphiline->GetParameter(0),-1*thetaphiline->GetParameter(1)/thetaphiline->GetParameter(0));
+		getlambdathetaphi = thetaget->Eval(getlambdathetaphi);
+
+		TF1 *thetaerr = (TF1*)mcvsdata->Get("fit4");
+		TF1 *phierr = (TF1*)mcvsdata->Get("fit5");
+		TF1 *thetaphierr = (TF1*)mcvsdata->Get("fit6");
+
+		cout<<" get parameter 0 : "<<thetaerr->GetParameter(0)<<"    "<<phierr->GetParameter(0)<<"    "<<thetaphierr->GetParameter(0)<<endl;
+		cout<<" get parameter 1 : "<<thetaerr->GetParameter(1)<<"    "<<phierr->GetParameter(1)<<"    "<<thetaphierr->GetParameter(1)<<endl;
+
+		thetaerr->SetParameter(0,1/thetaerr->GetParameter(0));
+		phierr->SetParameter(0,1/phierr->GetParameter(0));
+		thetaphierr->SetParameter(0,1/thetaphierr->GetParameter(0));
+
+		getlambdathetaerr = thetaerr->Eval(getlambdathetaerr);	
+		getlambdaphierr = phierr->Eval(getlambdaphierr);
+		getlambdathetaphierr = thetaphierr->Eval(getlambdathetaphierr);
+	}
+
+	cout<<" after correction : "<<getlambdathetaerr<<"   "<<getlambdaphierr<<"   "<<getlambdathetaphierr<<endl;
 	st->Fill(ierflg);
-	
+
 	getlambdainv = (getlambdatheta+3*getlambdaphi)/(1-getlambdaphi);
 
-
-	Double_t cov[3][3];
-
-	gMinuit->mnemat(&cov[0][0],3);
-	
 	cout<<" covariant matrix entry ========"<<cov[0][1]<<endl;
 
-	getlambdainverr = ((getlambdathetaerr/(1-getlambdaphi))**2+((3+getlambdatheta)*getlambdaphierr/(1-getlambdaphi)**2)**2+2*(1/(1-getlambdaphi))*((3+getlambdatheta)/(1-getlambdaphi)**2)*cov[0][1])**0.5; 
-	
-		
-	cout<<"status ====="<<st<<"=============="<<ierflg<<endl;
+	//	getlambdainverr = ((getlambdathetaerr/(1-getlambdaphi))**2+((3+getlambdatheta)*getlambdaphierr/(1-getlambdaphi)**2)**2+2*(1/(1-getlambdaphi))*((3+getlambdatheta)/(1-getlambdaphi)**2)*cov[0][1])**0.5; 
+	getlambdainverr = (cov[0][0]*(1/(1-getlambdaphi))**2+cov[1][1]*((3+getlambdatheta)/(1-getlambdaphi)**2)**2+2*(1/(1-getlambdaphi))*((3+getlambdatheta)/((1-getlambdaphi)**2))*cov[0][1])**0.5; 
 
 	cout<<"lambdatheta    = "<<getlambdatheta<<"  +/-   "<<getlambdathetaerr<<endl;
 	cout<<"lambdaphi      = "<<getlambdaphi<<"  +/-  "<<getlambdaphierr<<endl;
 	cout<<"lambdathetaphi = "<<getlambdathetaphi<<"  +/-  "<<getlambdathetaphierr<<endl;
 	cout<<"lambdainv = "<<getlambdainv<<" +/- "<<getlambdainverr<<endl;
 
-
 	if(getlambdatheta!=getlambdatheta) return ierflg;
 	double lbthesig,lbphisig,lbthetaphi,lbthesig_err,lbphisig_err,lbthetaphi_err;
 	double deltacontour = 0.5;
 
 	if(ierflg==0 || getlambdatheta==getlambdatheta){
-		hlambda=new TH3F("hlambda","lambdas;#lambda_{#theta};#lambda_{#phi};#lambda_{#theta#phi}",100,-1,1,100,-1,1,100,-1,1);
+		hlambda=new TH3F("hlambda","lambdas;#lambda_{#theta};#lambda_{#phi};#lambda_{#theta#phi}",400,-5,5,400,-5,5,400,-5,5);
 		hlambda_err=new TH3F("hlambda_err","lambdas uncertainty;#sigma#lambda_{#theta};#sigma#lambda_{#phi};#sigma#lambda_{#theta#phi}",100,0,2,100,0,2,100,0,2);
 		hlambda_inv= new TH1F("hlambda_inv","hlambda_inv",400,-2,2);
 		hlambda_inv_err = new TH1F("hlambda_inv_err","hlambda_inv_err",400,0,5);
@@ -296,6 +362,7 @@ Int_t Minimize(int sys=0,int trig,int pt,int frame){
 		hlambda_err->Fill(getlambdathetaerr,getlambdaphierr,getlambdathetaphierr);
 		hlambda_inv->Fill(getlambdainv);
 		hlambda_inv_err->Fill(getlambdainverr);
+		cout<<"  histgroam ===>"<<hlambda->GetMean(1)<<"    "<<hlambda->GetMean(2)<<"     "<<hlambda->GetMean(3)<<endl;
 	}
 	else return 1;
 	Double_t parameter[3] = {getlambdatheta,getlambdaphi,getlambdathetaphi}; 
@@ -304,7 +371,7 @@ Int_t Minimize(int sys=0,int trig,int pt,int frame){
 	return ierflg;
 }
 
-void sPlot3D_2eid_inv30(int trig=3,int pt=3,int frame=0,int sys=0) {
+void sPlot3D_2eid_inv30(int trig=3,int pt=4,int frame=0,int sys=0) {
 
 	gStyle->SetOptStat("eMR");
 	gStyle->SetStatFontSize(0.08);
@@ -353,100 +420,87 @@ void sPlot3D_2eid_inv30(int trig=3,int pt=3,int frame=0,int sys=0) {
 	hlambda_err->ProjectionY("lambda_err_py")->Draw();
 	c1->cd(8);
 	hlambda_err->ProjectionZ("lambda_err_pz")->Draw();
-	//	c1->SaveAs(Form("~/polresults/20160707/MLEmethod/splot/c1_%d.pdf",time->GetDate()));
-	/*
-	   c2->cd(1);
-	   hlambda2->Draw();
-	   c2->cd(2);
-	   hlambda2->ProjectionX()->Draw();
-	   c2->cd(3);
-	   hlambda2->ProjectionY()->Draw();
-	   c2->cd(4);
-	   hlambda2_err->Draw();
-	   c2->cd(5);
-	   hlambda2_err->ProjectionX()->Draw();
-	   c2->cd(6);
-	   hlambda2_err->ProjectionY()->Draw();
-	   c2->SaveAs(Form("~/polresults/20160707/MLEmethod/splot/c2_%d.pdf",time->GetDate()));
-	   */
+
 	outputfile->cd();
 	hlambda->Write("",TObject::kOverwrite);
 	hlambda_err->Write("",TObject::kOverwrite);
 	hlambda_inv->Write("",TObject::kOverwrite);
 	hlambda_inv_err->Write("",TObject::kOverwrite);
-	//	hlambda2->Write("",TObject::kOverwrite);
-	//	hlambda2_err->Write("",TObject::kOverwrite);
-	//hsub->Write("",TObject::kOverwrite);
+
+	hlambda_bf->Write("",TObject::kOverwrite);
+	hlambda_err_bf->Write("",TObject::kOverwrite);
+	hlambda_inv_bf->Write("",TObject::kOverwrite);
+	hlambda_inv_err_bf->Write("",TObject::kOverwrite);
+
 	c1->Write("",TObject::kOverwrite);
 	st->Write("",TObject::kOverwrite);
 	method->Write("",TObject::kOverwrite);
-	cout<<outputfile->GetName()<<endl;
 }
 
 void correcteddata(int file = 0,int trig,int pt,int frame,int rebin = 0){
 	int eid=2;
 	int selectedfile,file;
-//	trig += 1 ;
+	//	trig += 1 ;
 	if(file>=0 && file<=NFILE) selectedfile=file+1;
 	else if(file==100) file=0,selectedfile=NFILE;
 	else return;
 
 	for(;file<selectedfile;file++){
 		cout<<"  efficiency file ="<<Form("/star/u/siwei/efficiency/test20160706/rootfile20170817/OutFile_sys%d.root",file)<<endl;
-	//	efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170510/OutFile_sys%d.root",file),"read"); 
-//		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170531/OutFile_sys%d.root",file),"read"); 
-//		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170629/OutFile_sys%d.root",file),"read"); 
-	//	efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170817/OutFile_sys%d.root",file),"read"); 
-//		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170818/OutFile_sys%d.root",file),"read");// 1eID 2.9 < mee < 3.2 GeV/c^2  
-//		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170825/OutFile_sys%d.root",file),"read");// 3.0 < mee < 3.15 GeV/c^2
-//		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170825/OutFile_sys%d.root",file),"read");// 2.9 < mee < 3.20 GeV/c^2 2eid; 
-//		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170828/OutFile_sys%d_inv29.root",file),"read");// 2.9 < mee < 3.20 GeV/c^2 2eid; 
-//		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170913/OutFile_sys%d_inv30.root",file),"read");// 3.0 < mee < 3.15 GeV/c^2 2eid; 
-//		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170918/OutFile_sys%d_inv30.root",file),"read");// 3.0 < mee < 3.15 GeV/c^2 2eid; 
-		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170921/OutFile_sys%d_inv30.root",file),"read");// 3.0 < mee < 3.15 GeV/c^2 2eid; 
-//		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170828/OutFile_sys%d_inv30.root",file),"read");// 3.0 < mee < 3.15 GeV/c^2 2eid; 
+		//	efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170510/OutFile_sys%d.root",file),"read"); 
+		//		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170531/OutFile_sys%d.root",file),"read"); 
+		//		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170629/OutFile_sys%d.root",file),"read"); 
+		//	efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170817/OutFile_sys%d.root",file),"read"); 
+		//		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170818/OutFile_sys%d.root",file),"read");// 1eID 2.9 < mee < 3.2 GeV/c^2  
+		//		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170825/OutFile_sys%d.root",file),"read");// 3.0 < mee < 3.15 GeV/c^2
+		//		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170825/OutFile_sys%d.root",file),"read");// 2.9 < mee < 3.20 GeV/c^2 2eid; 
+		//		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170828/OutFile_sys%d_inv29.root",file),"read");// 2.9 < mee < 3.20 GeV/c^2 2eid; 
+		//		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170913/OutFile_sys%d_inv30.root",file),"read");// 3.0 < mee < 3.15 GeV/c^2 2eid; 
+		//		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170918/OutFile_sys%d_inv30.root",file),"read");// 3.0 < mee < 3.15 GeV/c^2 2eid; 
+		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20171017/OutFile_sys%d_inv30.root",file),"read");// 3.0 < mee < 3.15 GeV/c^2 2eid; 
+		//		efficiencyfile = new TFile(Form("/star/u/siwei/efficiency/test20160706/rootfile20170828/OutFile_sys%d_inv30.root",file),"read");// 3.0 < mee < 3.15 GeV/c^2 2eid; 
 
-//		if((file>=20 && file<=23) || (file>=29 && file<=30) || file==35) rawdatafile[file][trig] = new TFile(Form("rootfile/%s_sys%d.root",trigSet[trig].Data(),file),"read");//marker
-//		if((file>=20 && file<=23) || file==35) rawdatafile[file][trig] = new TFile(Form("rootfile20170521/%s_sys%d.ana.root",trigSet[trig].Data(),file),"read");//marker
+		//		if((file>=20 && file<=23) || (file>=29 && file<=30) || file==35) rawdatafile[file][trig] = new TFile(Form("rootfile/%s_sys%d.root",trigSet[trig].Data(),file),"read");//marker
+		//		if((file>=20 && file<=23) || file==35) rawdatafile[file][trig] = new TFile(Form("rootfile20170521/%s_sys%d.ana.root",trigSet[trig].Data(),file),"read");//marker
 
-//		if((file>=10 && file<=17) || file==22) rawdatafile[file][trig] = new TFile(Form("rootfile20170817/%s_sys%d.ana.root",trigSet[trig].Data(),file),"read");//marker
-//		else rawdatafile[file][trig] = new TFile(Form("rootfile20170817/%s_sys%d.ana.root",trigSet[trig].Data(),0),"read");//marker
+		//		if((file>=10 && file<=17) || file==22) rawdatafile[file][trig] = new TFile(Form("rootfile20170817/%s_sys%d.ana.root",trigSet[trig].Data(),file),"read");//marker
+		//		else rawdatafile[file][trig] = new TFile(Form("rootfile20170817/%s_sys%d.ana.root",trigSet[trig].Data(),0),"read");//marker
 
-// 1eID data file
-/* 
-		if((file>=10 && file<=17) || file==22) rawdatafile[file][trig] = new TFile(Form("../invmass3_0_1eid/rootfile20170824/%s_sys%d.ana.root",trigSet[trig].Data(),file),"read");//marker
-		else rawdatafile[file][trig] = new TFile(Form("../invmass3_0_1eid/rootfile20170824/%s_sys%d.ana.root",trigSet[trig].Data(),0),"read");//marker
-*/
+		// 1eID data file
+		/* 
+		   if((file>=10 && file<=17) || file==22) rawdatafile[file][trig] = new TFile(Form("../invmass3_0_1eid/rootfile20170824/%s_sys%d.ana.root",trigSet[trig].Data(),file),"read");//marker
+		   else rawdatafile[file][trig] = new TFile(Form("../invmass3_0_1eid/rootfile20170824/%s_sys%d.ana.root",trigSet[trig].Data(),0),"read");//marker
+		   */
 		// 1eID data file 
-// 2eID data file 3.0 < mee < 3.15 GeV/c^2 
+		// 2eID data file 3.0 < mee < 3.15 GeV/c^2 
 
-		if((file>=10 && file<=17) || file==22) rawdatafile[file][trig] = new TFile(Form("../invmass3_0_2eid/rootfile20170824/%s_sys%d.ana.root",trigSet[trig].Data(),file),"read");//marker
-//		else rawdatafile[file][trig] = new TFile(Form("../invmass3_0_2eid/rootfile20170824/%s_sys%d.ana.root",trigSet[trig].Data(),0),"read");//marker
-		else rawdatafile[file][trig] = new TFile(Form("../invmass_2eid_inv30/rootfile20170912/%s_sys%d.ana.root",trigSet[trig].Data(),0),"read");//marker
+		if((file>=3 && file<=10) || file==15) rawdatafile[file][trig] = new TFile(Form("../invmass_2eid_inv30/rootfile20170922/%s_sys%d.ana.root",trigSet[trig].Data(),file),"read");//marker
+		//		else rawdatafile[file][trig] = new TFile(Form("../invmass3_0_2eid/rootfile20170824/%s_sys%d.ana.root",trigSet[trig].Data(),0),"read");//marker
+		else rawdatafile[file][trig] = new TFile(Form("../invmass_2eid_inv30/rootfile20170922/%s_sys%d.ana.root",trigSet[trig].Data(),0),"read");//marker
 
-// 2eID data file 
-
-
-// 2eID data file 
-/*
-		if((file>=10 && file<=17) || file==22) rawdatafile[file][trig] = new TFile(Form("rootfile20170824/%s_sys%d.ana.root",trigSet[trig].Data(),file),"read");//marker
-		else rawdatafile[file][trig] = new TFile(Form("rootfile20170824/%s_sys%d.ana.root",trigSet[trig].Data(),0),"read");//marker
-*/
 		// 2eID data file 
 
-// 2eID data file  2.9 < mee < 3.2 GeV/c^2
-/*
-		if((file>=10 && file<=17) || file==22) rawdatafile[file][trig] = new TFile(Form("../invmass2_9_2eid/rootfile20170824/%s_sys%d.ana.root",trigSet[trig].Data(),file),"read");//marker
-		else rawdatafile[file][trig] = new TFile(Form("../invmass2_9_2eid/rootfile20170824/%s_sys%d.ana.root",trigSet[trig].Data(),0),"read");//marker
-*/
-// 2eID data file  2.9 < mee < 3.2 GeV/c^2
 
-// 1eID data file 2.9 < mee < 3.2 GeV/c^2
-/*
-		if((file>=10 && file<=17) || file==22) rawdatafile[file][trig] = new TFile(Form("../invmass2_9_1eid/rootfile20170824/%s_sys%d.ana.root",trigSet[trig].Data(),file),"read");//marker
-		else rawdatafile[file][trig] = new TFile(Form("../invmass2_9_1eid/rootfile20170824/%s_sys%d.ana.root",trigSet[trig].Data(),0),"read");//marker
-*/
-// 1eID data file 2.9 < mee < 3.2 GeV/c^2 
+		// 2eID data file 
+		/*
+		   if((file>=10 && file<=17) || file==22) rawdatafile[file][trig] = new TFile(Form("rootfile20170824/%s_sys%d.ana.root",trigSet[trig].Data(),file),"read");//marker
+		   else rawdatafile[file][trig] = new TFile(Form("rootfile20170824/%s_sys%d.ana.root",trigSet[trig].Data(),0),"read");//marker
+		   */
+		// 2eID data file 
+
+		// 2eID data file  2.9 < mee < 3.2 GeV/c^2
+		/*
+		   if((file>=10 && file<=17) || file==22) rawdatafile[file][trig] = new TFile(Form("../invmass2_9_2eid/rootfile20170824/%s_sys%d.ana.root",trigSet[trig].Data(),file),"read");//marker
+		   else rawdatafile[file][trig] = new TFile(Form("../invmass2_9_2eid/rootfile20170824/%s_sys%d.ana.root",trigSet[trig].Data(),0),"read");//marker
+		   */
+		// 2eID data file  2.9 < mee < 3.2 GeV/c^2
+
+		// 1eID data file 2.9 < mee < 3.2 GeV/c^2
+		/*
+		   if((file>=10 && file<=17) || file==22) rawdatafile[file][trig] = new TFile(Form("../invmass2_9_1eid/rootfile20170824/%s_sys%d.ana.root",trigSet[trig].Data(),file),"read");//marker
+		   else rawdatafile[file][trig] = new TFile(Form("../invmass2_9_1eid/rootfile20170824/%s_sys%d.ana.root",trigSet[trig].Data(),0),"read");//marker
+		   */
+		// 1eID data file 2.9 < mee < 3.2 GeV/c^2 
 
 		if(frame==0){
 			rawdata3D[file][trig][pt][frame][0] = (TH3F*)(rawdatafile[file][trig]->Get("hJpsiCosThetaPhiPt"));
@@ -471,41 +525,41 @@ void correcteddata(int file = 0,int trig,int pt,int frame,int rebin = 0){
 		int max = (((TH3F*)efficiencyfile->Get("hHT0JpsiCosThetaPhiPt2"))->GetZaxis())->FindBin(PtEdge[pt+1]-0.001);	
 		int min = (((TH3F*)efficiencyfile->Get("hHT0JpsiCosThetaPhiPt2"))->GetZaxis())->FindBin(PtEdge[pt]+0.001);	
 
-// 1eID embedding 
-if(eid==1){
-		if(frame==0){
-			eff3D[file][trig][pt][frame][0] = (TH3F*)efficiencyfile->Get(Form("h%sJpsiCosThetaPhiPt1",trigName[trig].Data()));
-			eff3D[file][trig][pt][frame][0]->SetName(Form("eff3D_pass_%d_%d_%d_%d",file,trig,pt,frame));
-			eff3D[file][trig][pt][frame][0]->Print();
-			eff3D[file][trig][pt][frame][1] = (TH3F*)efficiencyfile->Get("hJpsiCosThetaPhiPt1"); // the same as hJpsiCosThetaPhiPt2
-			eff3D[file][trig][pt][frame][1]->SetName(Form("hJpsiCosThetaPhiPt1_%s",trigName[trig].Data()));
+		// 1eID embedding 
+		if(eid==1){
+			if(frame==0){
+				eff3D[file][trig][pt][frame][0] = (TH3F*)efficiencyfile->Get(Form("h%sJpsiCosThetaPhiPt1",trigName[trig].Data()));
+				eff3D[file][trig][pt][frame][0]->SetName(Form("eff3D_pass_%d_%d_%d_%d",file,trig,pt,frame));
+				eff3D[file][trig][pt][frame][0]->Print();
+				eff3D[file][trig][pt][frame][1] = (TH3F*)efficiencyfile->Get("hJpsiCosThetaPhiPt1"); // the same as hJpsiCosThetaPhiPt2
+				eff3D[file][trig][pt][frame][1]->SetName(Form("hJpsiCosThetaPhiPt1_%s",trigName[trig].Data()));
+			}
+			else{	
+				eff3D[file][trig][pt][frame][0] = (TH3F*)efficiencyfile->Get(Form("h%sJpsiCosThetaPhiPtCS1",trigName[trig].Data()));
+				eff3D[file][trig][pt][frame][0]->SetName(Form("eff3D_pass_%d_%d_%d_%d",file,trig,pt,frame));
+				eff3D[file][trig][pt][frame][1] = (TH3F*)efficiencyfile->Get("hJpsiCosThetaPhiPtCS1");
+				eff3D[file][trig][pt][frame][1]->SetName(Form("hJpsiCosThetaPhiPtCS1_%s",trigName[trig].Data()));
+			}
 		}
-		else{	
-			eff3D[file][trig][pt][frame][0] = (TH3F*)efficiencyfile->Get(Form("h%sJpsiCosThetaPhiPtCS1",trigName[trig].Data()));
-			eff3D[file][trig][pt][frame][0]->SetName(Form("eff3D_pass_%d_%d_%d_%d",file,trig,pt,frame));
-			eff3D[file][trig][pt][frame][1] = (TH3F*)efficiencyfile->Get("hJpsiCosThetaPhiPtCS1");
-			eff3D[file][trig][pt][frame][1]->SetName(Form("hJpsiCosThetaPhiPtCS1_%s",trigName[trig].Data()));
-		}
-}
 		// 1eID embedding
 
-// 2eID embedding
-else if(eid==2){
-		if(frame==0){
-			eff3D[file][trig][pt][frame][0] = (TH3F*)efficiencyfile->Get(Form("h%sJpsiCosThetaPhiPt2",trigName[trig].Data()));
-			eff3D[file][trig][pt][frame][0]->SetName(Form("eff3D_pass_%d_%d_%d_%d",file,trig,pt,frame));
-			eff3D[file][trig][pt][frame][0]->Print();
-			eff3D[file][trig][pt][frame][1] = (TH3F*)efficiencyfile->Get("hJpsiCosThetaPhiPt2"); // the same as hJpsiCosThetaPhiPt2
-			eff3D[file][trig][pt][frame][1]->SetName(Form("hJpsiCosThetaPhiPt2_%s",trigName[trig].Data()));
+		// 2eID embedding
+		else if(eid==2){
+			if(frame==0){
+				eff3D[file][trig][pt][frame][0] = (TH3F*)efficiencyfile->Get(Form("h%sJpsiCosThetaPhiPt2",trigName[trig].Data()));
+				eff3D[file][trig][pt][frame][0]->SetName(Form("eff3D_pass_%d_%d_%d_%d",file,trig,pt,frame));
+				eff3D[file][trig][pt][frame][0]->Print();
+				eff3D[file][trig][pt][frame][1] = (TH3F*)efficiencyfile->Get("hJpsiCosThetaPhiPt2"); // the same as hJpsiCosThetaPhiPt2
+				eff3D[file][trig][pt][frame][1]->SetName(Form("hJpsiCosThetaPhiPt2_%s",trigName[trig].Data()));
+			}
+			else{	
+				eff3D[file][trig][pt][frame][0] = (TH3F*)efficiencyfile->Get(Form("h%sJpsiCosThetaPhiPtCS2",trigName[trig].Data()));
+				eff3D[file][trig][pt][frame][0]->SetName(Form("eff3D_pass_%d_%d_%d_%d",file,trig,pt,frame));
+				eff3D[file][trig][pt][frame][1] = (TH3F*)efficiencyfile->Get("hJpsiCosThetaPhiPtCS2");
+				eff3D[file][trig][pt][frame][1]->SetName(Form("hJpsiCosThetaPhiPtCS2_%s",trigName[trig].Data()));
+			}
 		}
-		else{	
-			eff3D[file][trig][pt][frame][0] = (TH3F*)efficiencyfile->Get(Form("h%sJpsiCosThetaPhiPtCS2",trigName[trig].Data()));
-			eff3D[file][trig][pt][frame][0]->SetName(Form("eff3D_pass_%d_%d_%d_%d",file,trig,pt,frame));
-			eff3D[file][trig][pt][frame][1] = (TH3F*)efficiencyfile->Get("hJpsiCosThetaPhiPtCS2");
-			eff3D[file][trig][pt][frame][1]->SetName(Form("hJpsiCosThetaPhiPtCS2_%s",trigName[trig].Data()));
-		}
-}
-// 2eID embedding
+		// 2eID embedding
 
 
 		eff3D[file][trig][pt][frame][0]->Sumw2();
@@ -655,14 +709,5 @@ float likelisignal(Double_t *x)
 	return x2;
 }
 
-float correctionfcn(int trig=2,int pt=3,int frame=0,int sys=0){
-
-
-
-
-
-
-
-}
 
 
