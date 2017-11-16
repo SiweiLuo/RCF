@@ -311,7 +311,8 @@ void test3D_2eid_inv30(int trig=3,int pt=4,int frame=0,int deltatheta=0,int delt
 
 //	TFile* infile = new TFile(Form("/star/u/siwei/polresults/20160707/splot/sys_0/functional_0_%d_%d_%d.root",trig,pt,frame));
 //	TFile* infile = new TFile(Form("/star/u/siwei/polresults/20160707/functional/splot_3D_20170430/splot_3D_%d_%d_%d_0_20170430.root",trig,pt,frame),"read");
-	TFile* infile = new TFile(Form("/star/u/siwei/polresults/20160707/functional/splot_3D_20171114_2eid_inv30/splot_3D_%d_%d_%d_0_20171114.root",trig,pt,frame),"read");
+//	TFile* infile = new TFile(Form("/star/u/siwei/polresults/20160707/functional/splot_3D_20171114_2eid_inv30/splot_3D_%d_%d_%d_0_20171114.root",trig,pt,frame),"read");
+	TFile* infile = new TFile(Form("/star/u/siwei/polresults/20160707/functional/splot_3D_20171025_2eid_inv30/splot_3D_%d_%d_%d_0_20171025.root",trig,pt,frame),"read");
 //	TGraphErrors* lambda = (TGraphErrors*)infile->Get("lambda");
 	TH3F* lambda = (TH3F*)infile->Get("hlambda");
 	Double_t LBTHESIG,LBPHISIG,LBTHEPHISIG;
@@ -321,6 +322,7 @@ void test3D_2eid_inv30(int trig=3,int pt=4,int frame=0,int deltatheta=0,int delt
 		LBTHESIG = lambda->GetMean(1);
 		LBPHISIG = lambda->GetMean(2);
 		LBTHEPHISIG = lambda->GetMean(3);
+		cout<<" input parameters : "<<LBTHESIG<<"   "<<LBPHISIG<<"   "<<LBTHEPHISIG<<endl;
 	}
 
 	fsig->SetParameters(1,LBTHESIG+deltatheta*0.2,LBPHISIG+deltaphi*0.2,LBTHEPHISIG+deltathetaphi*0.2);
