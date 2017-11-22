@@ -275,7 +275,7 @@ Int_t pseudo(int n=0,int trig,int pt,int frame){
 	Double_t minoslist[4] = {5000,0,1,2};
 
 //	if(ierflg!=0){
-		gMinuit->mnexcm("MINOS",minoslist,4,ierflg);
+//		gMinuit->mnexcm("MINOS",minoslist,4,ierflg);
 		if(ierflg==0) method->Fill(5);
 //	}
 
