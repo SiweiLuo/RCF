@@ -17,7 +17,7 @@
 #include "TFormula.h"
 #include "TRandom.h"
 
-#define NEXP     100
+#define NEXP     1000
 //#define NSIGNAL  500
 //#define NBKG     200
 //#define LBTHESIG -0.5
@@ -133,14 +133,14 @@ float likelihoodfcn(Double_t *x){
 	for(int i=1;i<=NBIN;i++){
 		for(int j=1;j<=NBIN;j++){
 			//			result += -1*hsub->GetBinContent(i,j)*TMath::Log(1./scale*lsig->Eval(hsub->GetXaxis()->GetBinCenter(i),hsub->GetYaxis()->GetBinCenter(j)));
-			if(effhist->GetBinContent(i,j)>1e-8) eff = effhist->GetBinContent(i,j);
-			else continue;
+//			if(effhist->GetBinContent(i,j)>1e-8) eff = effhist->GetBinContent(i,j);
+//			else continue;
 			//			if(hsub->GetBinContent(i,j)<0) continue;
 //			if(lsig->Eval(hsub->GetXaxis()->GetBinCenter(i),hsub->GetYaxis()->GetBinCenter(j))<0) continue;
 //			result += (hsub->GetBinContent(i,j)-eff*lsig->Eval(hsub->GetXaxis()->GetBinCenter(i),hsub->GetYaxis()->GetBinCenter(j)))**2;
 //			result += -1*hsub->GetBinContent(i,j)*eff*lsig->Eval(hsub->GetXaxis()->GetBinCenter(i),hsub->GetYaxis()->GetBinCenter(j));
-			//eff=effhist->GetBinContent(i,j);
-			result += -1*hsub->GetBinContent(i,j)*TMath::Log(eff*lsig->Eval(hsub->GetXaxis()->GetBinCenter(i),hsub->GetYaxis()->GetBinCenter(j)));
+			eff=effhist->GetBinContent(i,j);
+			if(eff>1e-8) result += -1*hsub->GetBinContent(i,j)*TMath::Log(eff*lsig->Eval(hsub->GetXaxis()->GetBinCenter(i),hsub->GetYaxis()->GetBinCenter(j)));
 			sum += eff*lsig->Eval(hsub->GetXaxis()->GetBinCenter(i),hsub->GetYaxis()->GetBinCenter(j));
 		}
 	}
@@ -312,7 +312,8 @@ void test3D_2eid_inv30(int trig=3,int pt=4,int frame=0,int deltatheta=0,int delt
 //	TFile* infile = new TFile(Form("/star/u/siwei/polresults/20160707/splot/sys_0/functional_0_%d_%d_%d.root",trig,pt,frame));
 //	TFile* infile = new TFile(Form("/star/u/siwei/polresults/20160707/functional/splot_3D_20170430/splot_3D_%d_%d_%d_0_20170430.root",trig,pt,frame),"read");
 //	TFile* infile = new TFile(Form("/star/u/siwei/polresults/20160707/functional/splot_3D_20171114_2eid_inv30/splot_3D_%d_%d_%d_0_20171114.root",trig,pt,frame),"read");
-	TFile* infile = new TFile(Form("/star/u/siwei/polresults/20160707/functional/splot_3D_20171025_2eid_inv30/splot_3D_%d_%d_%d_0_20171025.root",trig,pt,frame),"read");
+//	TFile* infile = new TFile(Form("/star/u/siwei/polresults/20160707/functional/splot_3D_20171025_2eid_inv30/splot_3D_%d_%d_%d_0_20171025.root",trig,pt,frame),"read");
+	TFile* infile = new TFile(Form("/star/u/siwei/polresults/20160707/functional/splot_3D_20171116_2eid_inv30/splot_3D_%d_%d_%d_0_20171116.root",trig,pt,frame),"read");
 //	TGraphErrors* lambda = (TGraphErrors*)infile->Get("lambda");
 	TH3F* lambda = (TH3F*)infile->Get("hlambda");
 	Double_t LBTHESIG,LBPHISIG,LBTHEPHISIG;
