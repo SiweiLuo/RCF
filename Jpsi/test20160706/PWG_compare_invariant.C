@@ -7,6 +7,8 @@ void PWG_compare_invariant(int eid=2, int inm=30){
 	gStyle->SetPadGridX(0);
 	gStyle->SetPadGridY(0);
 
+	TLegend *leg[6];
+
 	TFile* infile1 = new TFile(Form("~/polarization/invmass_%deid_inv%d/rootfile20170912/data_invariant_20171030.root",eid,inm),"read");
 	TFile* infile2 = new TFile(Form("rootfile20170921/emb_invariant_inv%d.root",inm),"read");
 	TFile* outfile = new TFile("rootfile20170921/PWG_compare_invariant.root","recreate");
@@ -15,7 +17,6 @@ void PWG_compare_invariant(int eid=2, int inm=30){
 	TH1F* inv[6][2];	
 
 	TCanvas* c[4];
-	TLegend* leg[4];
 
 	TCanvas* invc;
 	invc = new TCanvas("invc","invc",1200,1200);
@@ -53,7 +54,7 @@ void PWG_compare_invariant(int eid=2, int inm=30){
 
 	TLatex pttxt[6];
 
-	TCanvas *canvas = new TCanvas("canvas","canvas",1200,400);
+	TCanvas *canvas = new TCanvas("canvas","canvas",1600,400);
 	canvas->Divide(6,1,0,0);
 
 	Int_t xmin,xmax;
@@ -70,7 +71,7 @@ void PWG_compare_invariant(int eid=2, int inm=30){
 		datainvm[trig] = (TH1F*)data2d[trig]->ProjectionY(Form("datainvm%d",trig-1));
 		if(trig==0) datainvm[trig]->SetTitle(Form("MB Invariant mass comparison;m_{ee} GeV/c^{2};"));	
 		else datainvm[trig]->SetTitle(Form("HT%d Invariant mass comparison;m_{ee} GeV/c^{2};",trig-1));
-	cout<<"integral from 3.0 to 3.15 ==="<<datainvm[trig]->Integral(datainvm[trig]->GetXaxis()->FindBin(3.0),datainvm[trig]->GetXaxis()->FindBin(3.15))<<endl;
+		cout<<"integral from 3.0 to 3.15 ==="<<datainvm[trig]->Integral(datainvm[trig]->GetXaxis()->FindBin(3.0),datainvm[trig]->GetXaxis()->FindBin(3.15))<<endl;
 		cout<<"datainvm integral ====="<<datainvm[trig]->Integral(21,24)<<endl;
 		embinvm[trig] = (TH1F*)emb2d[trig]->ProjectionY(Form("embinvm%d",trig-1));
 		embinvm[trig]->SetLineColor(kRed);
@@ -92,19 +93,33 @@ void PWG_compare_invariant(int eid=2, int inm=30){
 		inv[pt][0]->GetXaxis()->SetLimits(2.5,3.5);
 		inv[pt][1]->GetYaxis()->SetRangeUser(-10,260);
 		inv[pt][1]->GetXaxis()->SetLimits(2.5,3.5);
-		
+
 		inv[pt][0]->Draw(); // data
-//		inv[pt][1]->Draw("HIST same"); // efficiency
+		//		inv[pt][1]->Draw("HIST same"); // efficiency
 		cout<<" bins ==== "<<inv[pt][0]->GetNbinsX()<<"   "<<inv[pt][1]->GetNbinsX()<<endl;
 
 
 		inv[pt][0]->Fit("fCB2");
-	
+
 		pttxt[pt].SetNDC(1);
-		pttxt[pt].DrawLatex(0.15,0.9,Form("#J/#psi signal S = %.1f",inv[pt][0]->Integral(datainvm[trig]->GetXaxis()->FindBin(3.0),datainvm[trig]->GetXaxis()->FindBin(3.15))));
-//		pttxt[pt].DrawLatex(0.15,0.8,Form("#J/#psi background B = %.1f",inv[pt][0]->Integral(datainvm[trig]->GetXaxis()->FindBin(3.0),datainvm[trig]->GetXaxis()->FindBin(3.15))));
-//		pttxt[pt].DrawLatex(0.15,0.7,Form("#J/#psi S/#sqrt{S+2B} = %.2f",inv[pt][0]->Integral(datainvm[trig]->GetXaxis()->FindBin(3.0),datainvm[trig]->GetXaxis()->FindBin(3.15))));
-	
+		if(pt==0){
+			pttxt[pt].DrawLatex(0.15,0.9,Form("#J/#psi signal S = %.1f",inv[pt][0]->Integral(datainvm[trig]->GetXaxis()->FindBin(3.0),datainvm[trig]->GetXaxis()->FindBin(3.15))));
+			//		pttxt[pt].DrawLatex(0.15,0.8,Form("#J/#psi background B = %.1f",inv[pt][0]->Integral(datainvm[trig]->GetXaxis()->FindBin(3.0),datainvm[trig]->GetXaxis()->FindBin(3.15))));
+			//		pttxt[pt].DrawLatex(0.15,0.7,Form("#J/#psi S/#sqrt{S+2B} = %.2f",inv[pt][0]->Integral(datainvm[trig]->GetXaxis()->FindBin(3.0),datainvm[trig]->GetXaxis()->FindBin(3.15))));
+		}
+		else {
+			pttxt[pt].DrawLatex(0.07,0.9,Form("#J/#psi signal S = %.1f",inv[pt][0]->Integral(datainvm[trig]->GetXaxis()->FindBin(3.0),datainvm[trig]->GetXaxis()->FindBin(3.15))));
+		}
+
+
+		leg[pt] = new TLegend(0.56,0.7,0.95,0.95);
+		leg[pt]->SetBorderSize(0);
+		leg[pt]->SetFillStyle(0);
+		leg[pt]->SetTextSize(0.04);
+		leg[pt]->AddEntry(inv[pt][0],"data","lep");
+		leg[pt]->AddEntry(fCB2,"crystalball+POL1","l");
+		leg[pt]->Draw("same");
+
 	}
 	canvas->SaveAs("~/WWW/Proposal/figure/PWGcanvas.pdf");
 }
