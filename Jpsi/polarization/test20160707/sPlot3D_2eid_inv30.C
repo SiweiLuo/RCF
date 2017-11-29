@@ -38,13 +38,15 @@
 Int_t NSIGNAL = 500;
 Int_t NBKG = 200;
 
-TF2* fsig=new TF2("fsig","[0]*(1+[1]*y**2+[2]*(1-y**2)*cos(2*x)+[3]*sin(2*acos(y))*cos(x))",XMIN,XMAX,YMIN,YMAX);
-TF2* fbkg=new TF2("fbkg","[0]*(1+[1]*y**2+[2]*(1-y**2)*cos(2*x))",XMIN,XMAX,YMIN,YMAX);
+TF2* fsig=new TF2("fsig","max(0,[0]*(1+[1]*y**2+[2]*(1-y**2)*cos(2*x)+[3]*sin(2*acos(y))*cos(x)))",XMIN,XMAX,YMIN,YMAX);
+TF2* fbkg=new TF2("fbkg","max(0,[0]*(1+[1]*y**2+[2]*(1-y**2)*cos(2*x)))",XMIN,XMAX,YMIN,YMAX);
 //TF2* lsig=new TF2("lsig","[0]*(1+[1]*y**2+[2]*(1-y**2)*cos(2*x)+[3]*sin(2*acos(y))*cos(x))",XMIN,XMAX,YMIN,YMAX);
 //TF2* lsig=new TF2("lsig","[0]*(1+[1]*y**2+[2]*(1-y**2)*TMath::Cos(2*x)+[3]*TMath::Sin(2*TMath::ACos(y))*TMath::Cos(x))",XMIN,XMAX,YMIN,YMAX);
-TF2* lsig=new TF2("lsig","[0]*(1+[1]*y**2+[2]*(1-y**2)*TMath::Cos(2*x)+2*[3]*TMath::Cos(x)*y*(1-y**2)**0.5)",XMIN,XMAX,YMIN,YMAX);
+//TF2* lsig=new TF2("lsig","max([0]*0.0001,[0]*(1+[1]*y**2+[2]*(1-y**2)*TMath::Cos(2*x)+2*[3]*TMath::Cos(x)*y*(1-y**2)**0.5))",XMIN,XMAX,YMIN,YMAX);
+TF2* lsig=new TF2("lsig","max([0]*0.0001,[0]*(1+[1]*y**2+[2]*(1-y**2)*TMath::Cos(2*x)+[3]*sin(2*acos(y))*cos(x)))",XMIN,XMAX,YMIN,YMAX);
 
 TH2F *hunl, *hlik, *hsig, *hbkg, *hsub;
+TH2F *hsigthetaplus, *hsigthetaminus, *hsigphiplus, *hsigphiminus;
 TH3F *hlambda,  *hlambda_err,  *hlambda_bf, *hlambda_err_bf;
 TH1F *hlambda_inv, *hlambda_inv_err, *hlambda_inv_bf, *hlambda_inv_err_bf;
 TGraph *gc, *gc2;
@@ -122,29 +124,27 @@ float likelihoodfcn(Double_t *x){
 	cout<<" lsig parameters := "<<lsig->GetParameter(0)<<"   "<<lsig->GetParameter(1)<<"   "<<lsig->GetParameter(2)<<"   "<<lsig->GetParameter(3)<<endl;
 
 	double phi,costheta;
-	double scale=0.;
+	double scale=0.,datatot=0.;
 	double pdfv;
 	for(int i=1;i<=NBIN;i++){
 		for(int j=1;j<=NBIN;j++){
 			if(effhist->GetBinContent(i,j)!=effhist->GetBinContent(i,j))continue;
 			phi = effhist->GetXaxis()->GetBinCenter(i);
 			costheta = effhist->GetYaxis()->GetBinCenter(j);
-//			cout<<" evaluation ===== "<<lsig->Eval(phi,costheta)<<endl;
-			if(lsig->Eval(phi,costheta)!=lsig->Eval(phi,costheta)) {
-				cout<<" phi ======== "<<phi<<"  costheta ======== "<<costheta<<endl;
-				cout<<"  ACos() == "<<TMath::ACos(costheta)<<endl;
-				cout<<" Sin ===== "<<TMath::Sin(TMath::ACos(costheta))<<endl;
-				cout<<" !!!!!!!!!!!!!!!!!!!!!!! "<<endl;
+			datatot += datahist->GetBinContent(i,j);	
+/*			if(lsig->Eval(phi,costheta)<0) {
+				cout<<" lsig < 0 =========>"<<lsig->Eval(phi,costheta)<<endl;
+				return 1e6;	
 			}
-				//			pdfv = 0.5*(lsig->Eval(phi,costheta)+fabs(lsig->Eval(phi,costheta)));
-//			if(lsig->Eval(phi,costheta)<0) pdfv=0.;
-//			else pdfv = lsig->Eval(phi,costheta);
+*/
+			//			if(lsig->Eval(phi,costheta)<0) continue;//cout<<" evaluation < 0  =====> "<<lsig->Eval(phi,costheta)<<endl;
 			scale += effhist->GetBinContent(i,j)*lsig->Eval(phi,costheta);
 	//		scale += effhist->GetBinContent(i,j)*pdfv;
 	//		if(lsig->Eval(phi,costheta)!=lsig->Eval(phi,costheta))cout<<"phi ==="<<phi<<"   costheta=== "<<costheta<<"  lsig->Eval() === "<<lsig->Eval(phi,costheta)<<endl;
 		}
 	}
 	lsig->SetParameter(0,1./scale); //renormalization	
+//	lsig->SetParameter(0,datatot/scale); //renormalization	
 
 	double eff;
 	float result=0;
@@ -152,10 +152,12 @@ float likelihoodfcn(Double_t *x){
 	for(int i=1;i<=NBIN;i++){
 		for(int j=1;j<=NBIN;j++){
 			sum += eff*lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j)); // check the normalization
-			if(effhist->GetBinContent(i,j)>1e-6) eff = effhist->GetBinContent(i,j);
-			else continue;
+//			if(effhist->GetBinContent(i,j)>1e-6) eff = effhist->GetBinContent(i,j);
+//			else continue;
+			eff = effhist->GetBinContent(i,j);
 			if(datahist->GetBinContent(i,j)<1e-6) continue;
-//			if(lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j))<0) cout<<" log negative == "<<lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j))<<endl;
+//			if(lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j)<0)) continue;
+			//			if(lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j))<0) cout<<" log negative == "<<lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j))<<endl;
 	/*
 			if(lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j)<0)) pdfv=0;
 			else pdfv = lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j));
@@ -164,13 +166,14 @@ float likelihoodfcn(Double_t *x){
 			//				cout<<"sighist negative bins*********"<<endl;
 			//			}
 //							result += -1*sighist->GetBinContent(i,j)*TMath::Log(eff*lsig->Eval(sighist->GetXaxis()->GetBinCenter(i),sighist->GetYaxis()->GetBinCenter(j)));
-			result += -1*datahist->GetBinContent(i,j)*TMath::Log(eff*lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j)));
-//			result += -1*datahist->GetBinContent(i,j)*TMath::Log(eff*pdfv);
-			//			sum += eff*lsig->Eval(sighist->GetXaxis()->GetBinCenter(i),sighist->GetYaxis()->GetBinCenter(j)); // check the normalization
-//			if(lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j))!=lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j))) cout<<" !!!!!!!!!!!!!!!!!!!!! "<<endl;
+	//		cout<<" log ===== "<<TMath::Log(eff*lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j)))<<endl;
+			if(eff>1e-8)result += -1*datahist->GetBinContent(i,j)*TMath::Log(eff*lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j)));
+//			result += (datahist->GetBinContent(i,j)-(eff*lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j))))**2;
 		}
 	}
+	cout<<" sum ======= "<<sum<<"   datatot ==== "<<datatot<<endl;
 	//	result*=datahist->Integral()/(tothist->Integral()+bkghist->Integral());
+	cout<<" result ====== "<<result<<endl;
 	return result;
 }
 
@@ -192,13 +195,14 @@ void compare(Double_t *par, Int_t *ptbin){
 
 	TCanvas* comparison = new TCanvas("comparison","comparison",1200,600);
 	comparison->Divide(2,1);
+	TLegend* comparisonleg;
 
 	gRandom = new TRandom3();
 	gRandom->SetSeed();
 
 	hsig=new TH2F("hsig","",NBIN,XMIN,XMAX,NBIN,YMIN,YMAX);
 	fsig->SetParameters(1,par[0],par[1],par[2]);
-
+	
 	Double_t eff;
 	Double_t check1;
 	for(int i=1;i<=NBIN;i++){
@@ -210,28 +214,79 @@ void compare(Double_t *par, Int_t *ptbin){
 	}
 	hsig->Scale(datahist->Integral()/hsig->Integral());
 
+	hsigthetaplus = new TH2F("hsigthetaplus","",NBIN,XMIN,XMAX,NBIN,YMIN,YMAX);
+	fsig->SetParameters(1,par[0]+0.4,par[1],par[2]);
+	for(int i=1;i<=NBIN;i++){
+		for(int j=1;j<=NBIN;j++){
+			eff = effhist->GetBinContent(i,j);
+			hsigthetaplus->Fill(effhist->GetXaxis()->GetBinCenter(i),effhist->GetYaxis()->GetBinCenter(j),eff*fsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j)));
+			//			sum += eff*lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j)); // check the normalization
+		}
+	}
+	hsigthetaplus->Scale(datahist->Integral()/hsigthetaplus->Integral());
 
-	/*
-	   for(int i=0;i<datahist->Integral();) {
-	   Double_t xsig,ysig;
-	   fsig->GetRandom2(xsig,ysig);
-	   if(gRandom->Uniform()<effhist->GetBinContent(effhist->FindBin(xsig,ysig))){
-	   hsig->Fill(xsig,ysig);
-	   i++;
-	   }
-	   }*/
+	hsigthetaminus = new TH2F("hsigthetaminus","",NBIN,XMIN,XMAX,NBIN,YMIN,YMAX);
+	fsig->SetParameters(1,par[0]-0.4,par[1],par[2]);
+	for(int i=1;i<=NBIN;i++){
+		for(int j=1;j<=NBIN;j++){
+			eff = effhist->GetBinContent(i,j);
+			hsigthetaminus->Fill(effhist->GetXaxis()->GetBinCenter(i),effhist->GetYaxis()->GetBinCenter(j),eff*fsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j)));
+			//			sum += eff*lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j)); // check the normalization
+		}
+	}
+	hsigthetaminus->Scale(datahist->Integral()/hsigthetaminus->Integral());
+
+	hsigphiplus = new TH2F("hsigphiplus","",NBIN,XMIN,XMAX,NBIN,YMIN,YMAX);
+	fsig->SetParameters(1,par[0],par[1]+0.4,par[2]);
+	for(int i=1;i<=NBIN;i++){
+		for(int j=1;j<=NBIN;j++){
+			eff = effhist->GetBinContent(i,j);
+			hsigphiplus->Fill(effhist->GetXaxis()->GetBinCenter(i),effhist->GetYaxis()->GetBinCenter(j),eff*fsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j)));
+			//			sum += eff*lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j)); // check the normalization
+		}
+	}
+	hsigphiplus->Scale(datahist->Integral()/hsigphiplus->Integral());
+
+	hsigphiminus = new TH2F("hsigphiminus","",NBIN,XMIN,XMAX,NBIN,YMIN,YMAX);
+	fsig->SetParameters(1,par[0],par[1]-0.4,par[2]);
+	for(int i=1;i<=NBIN;i++){
+		for(int j=1;j<=NBIN;j++){
+			eff = effhist->GetBinContent(i,j);
+			hsigphiminus->Fill(effhist->GetXaxis()->GetBinCenter(i),effhist->GetYaxis()->GetBinCenter(j),eff*fsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j)));
+			//			sum += eff*lsig->Eval(datahist->GetXaxis()->GetBinCenter(i),datahist->GetYaxis()->GetBinCenter(j)); // check the normalization
+		}
+	}
+	hsigphiminus->Scale(datahist->Integral()/hsigphiminus->Integral());
+
 	comparison->cd(1);
 	datahist->ProjectionX("px");
 	px->SetTitle(Form("%s @ %s GeV/c in %s",trigName[ptbin[0]].Data(),pTName[ptbin[1]].Data(),frameName[ptbin[2]].Data()));
 	px->SetMinimum(0);	
 	px->Draw();
 	hsig->ProjectionX("hx")->Draw("same");
+	hsigthetaplus->ProjectionX("hsigthetaplus_px")->Draw("same");
+	hsigthetaminus->ProjectionX("hsigthetaminus_px")->Draw("same");
+	comparisonleg = new TLegend(0.7,0.7,0.89,0.89);
+	comparisonleg->AddEntry(datahist,"data","lep");
+	comparisonleg->AddEntry(hsig,"fit","l");
+	comparisonleg->AddEntry(hsigthetaplus,"fit + 0.4","l");
+	comparisonleg->AddEntry(hsigthetaminus,"fit - 0.4","l");
+	comparisonleg->Draw("same");
 	comparison->cd(2);
 	datahist->ProjectionY("py");
 	py->SetTitle("");
 	py->SetMinimum(0);
 	py->Draw();
 	hsig->ProjectionY("hy")->Draw("same");
+	hsigthetaplus->ProjectionY("hsigthetaplus_py")->Draw("same");
+	hsigthetaminus->ProjectionY("hsigthetaminus_py")->Draw("same");
+	comparisonleg = new TLegend(0.7,0.7,0.89,0.89);
+	comparisonleg->AddEntry(datahist,"data","lep");
+	comparisonleg->AddEntry(hsig,"fit","l");
+	comparisonleg->AddEntry(hsigthetaplus,"fit + 0.4","l");
+	comparisonleg->AddEntry(hsigthetaminus,"fit - 0.4","l");
+	comparisonleg->Draw("same");
+
 	outputfile->cd();
 	hsig->Write();
 	fsig->Write();
@@ -241,6 +296,9 @@ void compare(Double_t *par, Int_t *ptbin){
 
 
 Int_t Minimize(int sys=0,int trig,int pt,int frame){
+	static Double_t vstart[4] = {0.1, 0.1, 0.1, 0.01};
+	static Double_t step[4] = {0.1, 0.1, 0.1, 0.001};
+
 	TMinuit *gMinuit = new TMinuit(3);
 	gMinuit->SetFCN(fcn);
 
@@ -251,16 +309,14 @@ Int_t Minimize(int sys=0,int trig,int pt,int frame){
 	gMinuit->mnexcm("SET ERR", arglist ,10,ierflg);
 
 	// Set starting values and step sizes for parameters
-	static Double_t vstart[4] = {0.1, 0.1, 0.1, 0.01};
-	static Double_t step[4] = {0.2, 0.2, 0.2, 0.001};
 	//	static Double_t step[4] = {1, 1, 1, 0.001};
 	gMinuit->mnparm(0, "p1", vstart[0], step[0], -5.,5.,ierflg);
 	gMinuit->mnparm(1, "p2", vstart[1], step[1], -5.,5.,ierflg);
 	gMinuit->mnparm(2, "p3", vstart[2], step[2], -5.,5.,ierflg);
 
-	Double_t scan1list[4]={0,1000,-5.,5.};
-	Double_t scan2list[4]={1,1000,-5.,5.};
-	Double_t scan3list[4]={2,1000,-5.,5.};
+	Double_t scan1list[4]={1,1000,-5.,5.};
+	Double_t scan2list[4]={2,1000,-5.,5.};
+	Double_t scan3list[4]={3,1000,-5.,5.};
 	//	if(!(trig==1&&pt==1&&frame==1)){
 	gMinuit->mnexcm("SCAN",scan1list,4,ierflg);	
 	gMinuit->mnexcm("SCAN",scan2list,4,ierflg);	
@@ -269,16 +325,16 @@ Int_t Minimize(int sys=0,int trig,int pt,int frame){
 	// Now ready for minimization step
 	arglist[0] = 5000;
 	arglist[1] = 10.;
-	gMinuit->mnexcm("MIGRAD", arglist ,2,ierflg);
+	gMinuit->mnexcm("MIGRAD", arglist ,4,ierflg);
 
 	// Print results
 	Double_t amin,edm,errdef;
 	Int_t nvpar,nparx,icstat;
-	gMinuit->mnstat(amin,edm,errdef,nvpar,nparx,icstat);
 
-	gMinuit->mnexcm("HESSE",arglist,2,ierflg);
+	gMinuit->mnexcm("HESSE",arglist,4,ierflg);
+	gMinuit->mnstat(amin,edm,errdef,nvpar,nparx,icstat);
 	Double_t minoslist[4] = {5000,0,1,2};
-//	gMinuit->mnexcm("MINOS",minoslist,4,ierflg);
+	gMinuit->mnexcm("MINOS",minoslist,4,ierflg);
 
 	Double_t getlambdatheta,getlambdathetaerr,getlambdaphi,getlambdaphierr,getlambdathetaphi,getlambdathetaphierr,getlambdainv,getlambdainverr;
 
@@ -302,8 +358,9 @@ Int_t Minimize(int sys=0,int trig,int pt,int frame){
 	hlambda_inv_bf->Fill((getlambdatheta+3*getlambdaphi)/(1-getlambdaphi));
 	hlambda_inv_err_bf->Fill((cov[0][0]*(1/(1-getlambdaphi))**2+cov[1][1]*((3+getlambdatheta)/(1-getlambdaphi)**2)**2+2*(1/(1-getlambdaphi))*((3+getlambdatheta)/((1-getlambdaphi)**2))*cov[0][1])**0.5);
 
-	if(trig!=1 && pt!=1){ //correction of bias
-		TFile* mcvsdata = new TFile(Form("/star/u/siwei/polresults/20160707/MLEmethod/splot_3D_20171020_2eid_inv30_wofactor/thetavstheta_%d_%d_%d_20171023.root",trig,pt,frame),"read");	
+//	if(trig!=1 && pt!=1){ //correction of bias
+	if(1){
+		TFile* mcvsdata = new TFile(Form("/star/u/siwei/polresults/20160707/MLEmethod/splot_3D_20171116_2eid_inv30_wofactor/thetavstheta_%d_%d_%d_20171116.root",trig,pt,frame),"read");	
 		TF1 *thetaline = (TF1*)mcvsdata->Get("fit1");
 		TF1 *philine = (TF1*)mcvsdata->Get("fit2");
 		TF1 *thetaphiline = (TF1*)mcvsdata->Get("fit3");
@@ -371,7 +428,7 @@ Int_t Minimize(int sys=0,int trig,int pt,int frame){
 	return ierflg;
 }
 
-void sPlot3D_2eid_inv30(int trig=3,int pt=4,int frame=0,int sys=0) {
+void sPlot3D_2eid_inv30(int trig=1,int pt=1,int frame=1,int sys=0) {
 
 	gStyle->SetOptStat("eMR");
 	gStyle->SetStatFontSize(0.08);
@@ -521,7 +578,8 @@ void correcteddata(int file = 0,int trig,int pt,int frame,int rebin = 0){
 		if(frame==0) rawdata3D[file][trig][pt][frame][2]->SetName("rawdata3D_unlike_like_hx");
 		else rawdata3D[file][trig][pt][frame][2]->SetName("rawdata3D_unlike_like_cs");
 		rawdata3D[file][trig][pt][frame][2]->Sumw2();
-		rawdata3D[file][trig][pt][frame][2]->Add(rawdata3D[file][trig][pt][frame][1],-1);
+//		rawdata3D[file][trig][pt][frame][2]->Add(rawdata3D[file][trig][pt][frame][1],-1);
+		rawdata3D[file][trig][pt][frame][2]->Add(rawdata3D[file][trig][pt][frame][1],-2);
 		int max = (((TH3F*)efficiencyfile->Get("hHT0JpsiCosThetaPhiPt2"))->GetZaxis())->FindBin(PtEdge[pt+1]-0.001);	
 		int min = (((TH3F*)efficiencyfile->Get("hHT0JpsiCosThetaPhiPt2"))->GetZaxis())->FindBin(PtEdge[pt]+0.001);	
 
@@ -619,8 +677,17 @@ void correcteddata(int file = 0,int trig,int pt,int frame,int rebin = 0){
 		eff2D[file][trig][pt][frame][2]->Divide(eff2D[file][trig][pt][frame][1]);
 
 		datahist = (TH2F*)rawdata2D[file][trig][pt][frame]->Clone("datahist");
+//		datahist->RebinX(NREBIN);
+//		datahist->RebinY(NREBIN);
+
 		bkghist = (TH2F*)bkgdata2D[file][trig][pt][frame]->Clone("bkghist");
+//		bkghist->RebinX(NREBIN);
+//		bkghist->RebinY(NREBIN);
+
 		tothist = (TH2F*)totdata2D[file][trig][pt][frame]->Clone("tothist");
+//		tothist->RebinX(NREBIN);
+//		tothist->RebinY(NREBIN);
+
 		effhist = (TH2F*)eff2D[file][trig][pt][frame][2]->Clone("effhist");
 		/*
 		   TMinuit *gMinuit = new TMinuit(101);
