@@ -39,6 +39,8 @@ Int_t NSIGNAL = 500;
 Int_t NBKG = 200;
 
 TF2* fsig=new TF2("fsig","max(0,[0]*(1+[1]*y**2+[2]*(1-y**2)*cos(2*x)+[3]*sin(2*acos(y))*cos(x)))",XMIN,XMAX,YMIN,YMAX);
+TF2* fsigplus=new TF2("fsigplus","max(0,[0]*(1+[1]*y**2+[2]*(1-y**2)*cos(2*x)+[3]*sin(2*acos(y))*cos(x)))",XMIN,XMAX,YMIN,YMAX);
+TF2* fsigminus=new TF2("fsigminus","max(0,[0]*(1+[1]*y**2+[2]*(1-y**2)*cos(2*x)+[3]*sin(2*acos(y))*cos(x)))",XMIN,XMAX,YMIN,YMAX);
 TF2* fbkg=new TF2("fbkg","max(0,[0]*(1+[1]*y**2+[2]*(1-y**2)*cos(2*x)))",XMIN,XMAX,YMIN,YMAX);
 //TF2* lsig=new TF2("lsig","[0]*(1+[1]*y**2+[2]*(1-y**2)*cos(2*x)+[3]*sin(2*acos(y))*cos(x))",XMIN,XMAX,YMIN,YMAX);
 //TF2* lsig=new TF2("lsig","[0]*(1+[1]*y**2+[2]*(1-y**2)*TMath::Cos(2*x)+[3]*TMath::Sin(2*TMath::ACos(y))*TMath::Cos(x))",XMIN,XMAX,YMIN,YMAX);
@@ -109,6 +111,7 @@ TH1F* method;
 TDatime* time;
 
 Double_t eID = 1;
+Double_t gscale = 1;
 
 void fcn(Int_t &npar, Double_t *gin, Double_t &f, Double_t *par, Int_t iflag)
 {
@@ -144,7 +147,8 @@ float likelihoodfcn(Double_t *x){
 		}
 	}
 	lsig->SetParameter(0,1./scale); //renormalization	
-//	lsig->SetParameter(0,datatot/scale); //renormalization	
+	gscale = 1/scale;
+	//	lsig->SetParameter(0,datatot/scale); //renormalization	
 
 	double eff;
 	float result=0;
@@ -190,18 +194,24 @@ double getminimum(std::vector<double> inputvector){
 }
 
 void compare(Double_t *par, Int_t *ptbin){
-	gStyle->Reset();
+//	gStyle->Reset();
 	gStyle->SetOptStat(false);
 
 	TCanvas* comparison = new TCanvas("comparison","comparison",1200,600);
-	comparison->Divide(2,1);
+	//comparison->Divide(2,1);
 	TLegend* comparisonleg;
+
+	TCanvas* comparison1 = new TCanvas("comparison1","comparison1",600,600);
+	TCanvas* comparison2 = new TCanvas("comparison2","comparison2",600,600);
 
 	gRandom = new TRandom3();
 	gRandom->SetSeed();
 
 	hsig=new TH2F("hsig","",NBIN,XMIN,XMAX,NBIN,YMIN,YMAX);
+	hsig->SetMarkerColor(kRed);
+	hsig->SetLineColor(kRed);
 	fsig->SetParameters(1,par[0],par[1],par[2]);
+//	fsig->SetParameters(gscale,par[0],par[1],par[2]);
 	
 	Double_t eff;
 	Double_t check1;
@@ -215,7 +225,11 @@ void compare(Double_t *par, Int_t *ptbin){
 	hsig->Scale(datahist->Integral()/hsig->Integral());
 
 	hsigthetaplus = new TH2F("hsigthetaplus","",NBIN,XMIN,XMAX,NBIN,YMIN,YMAX);
-	fsig->SetParameters(1,par[0]+0.4,par[1],par[2]);
+	hsigthetaplus->SetMarkerColor(kBlue);
+	hsigthetaplus->SetLineColor(kBlue);
+
+	//	fsig->SetParameters(1,par[0]+0.4,par[1],par[2]);
+	fsig->SetParameters(1,1,par[1],par[2]);
 	for(int i=1;i<=NBIN;i++){
 		for(int j=1;j<=NBIN;j++){
 			eff = effhist->GetBinContent(i,j);
@@ -226,7 +240,10 @@ void compare(Double_t *par, Int_t *ptbin){
 	hsigthetaplus->Scale(datahist->Integral()/hsigthetaplus->Integral());
 
 	hsigthetaminus = new TH2F("hsigthetaminus","",NBIN,XMIN,XMAX,NBIN,YMIN,YMAX);
-	fsig->SetParameters(1,par[0]-0.4,par[1],par[2]);
+	hsigthetaminus->SetMarkerColor(kViolet);
+	hsigthetaminus->SetLineColor(kViolet);
+	//	fsig->SetParameters(1,par[0]-0.4,par[1],par[2]);
+	fsig->SetParameters(1,-1,par[1],par[2]);
 	for(int i=1;i<=NBIN;i++){
 		for(int j=1;j<=NBIN;j++){
 			eff = effhist->GetBinContent(i,j);
@@ -237,7 +254,10 @@ void compare(Double_t *par, Int_t *ptbin){
 	hsigthetaminus->Scale(datahist->Integral()/hsigthetaminus->Integral());
 
 	hsigphiplus = new TH2F("hsigphiplus","",NBIN,XMIN,XMAX,NBIN,YMIN,YMAX);
-	fsig->SetParameters(1,par[0],par[1]+0.4,par[2]);
+	hsigphiplus->SetMarkerColor(kBlue);
+	hsigphiplus->SetLineColor(kBlue);
+	//	fsig->SetParameters(1,par[0],par[1]+0.4,par[2]);
+	fsig->SetParameters(1,par[0],1,par[2]);
 	for(int i=1;i<=NBIN;i++){
 		for(int j=1;j<=NBIN;j++){
 			eff = effhist->GetBinContent(i,j);
@@ -248,7 +268,10 @@ void compare(Double_t *par, Int_t *ptbin){
 	hsigphiplus->Scale(datahist->Integral()/hsigphiplus->Integral());
 
 	hsigphiminus = new TH2F("hsigphiminus","",NBIN,XMIN,XMAX,NBIN,YMIN,YMAX);
-	fsig->SetParameters(1,par[0],par[1]-0.4,par[2]);
+	hsigphiminus->SetMarkerColor(kViolet);
+	hsigphiminus->SetLineColor(kViolet);
+	//	fsig->SetParameters(1,par[0],par[1]-0.4,par[2]);
+	fsig->SetParameters(1,par[0],-1,par[2]);
 	for(int i=1;i<=NBIN;i++){
 		for(int j=1;j<=NBIN;j++){
 			eff = effhist->GetBinContent(i,j);
@@ -258,40 +281,74 @@ void compare(Double_t *par, Int_t *ptbin){
 	}
 	hsigphiminus->Scale(datahist->Integral()/hsigphiminus->Integral());
 
-	comparison->cd(1);
+	//comparison->cd(1);
+	comparison1->cd();
 	datahist->ProjectionX("px");
 	px->SetTitle(Form("%s @ %s GeV/c in %s",trigName[ptbin[0]].Data(),pTName[ptbin[1]].Data(),frameName[ptbin[2]].Data()));
 	px->SetMinimum(0);	
 	px->Draw();
 	hsig->ProjectionX("hx")->Draw("same");
-	hsigthetaplus->ProjectionX("hsigthetaplus_px")->Draw("same");
-	hsigthetaminus->ProjectionX("hsigthetaminus_px")->Draw("same");
-	comparisonleg = new TLegend(0.7,0.7,0.89,0.89);
+/*	hsigthetaplus->ProjectionX("hsigthetaplus_px");
+	hsigthetaplus_px->SetLineStyle(3);
+	hsigthetaplus_px->Draw("same");
+	hsigthetaminus->ProjectionX("hsigthetaminus_px");
+	hsigthetaminus_px->SetLineStyle(3);
+	hsigthetaminus_px->Draw("same");
+*/
+	hsigphiplus->ProjectionX("hsigphiplus_px");
+	hsigphiplus_px->SetLineStyle(3);
+	hsigphiplus_px->Draw("same");
+	hsigphiminus->ProjectionX("hsigphiminus_px");
+	hsigphiminus_px->SetLineStyle(3);
+	hsigphiminus_px->Draw("same");
+
+	comparisonleg = new TLegend(0.15,0.7,0.35,0.89);
+	comparisonleg->SetBorderSize(0);
+	comparisonleg->SetFillStyle(0);
 	comparisonleg->AddEntry(datahist,"data","lep");
-	comparisonleg->AddEntry(hsig,"fit","l");
-	comparisonleg->AddEntry(hsigthetaplus,"fit + 0.4","l");
-	comparisonleg->AddEntry(hsigthetaminus,"fit - 0.4","l");
+	comparisonleg->AddEntry(hsig,Form("#lambda_{#phi} = %.2f +/- %.2f",par[1],par[4]),"l");
+	comparisonleg->AddEntry(hsigphiplus,"#lambda_{#phi} = 1.","l");
+	comparisonleg->AddEntry(hsigphiminus,"#lambda_{#phi} = -1.","l");
 	comparisonleg->Draw("same");
-	comparison->cd(2);
+	
+	//comparison->cd(2);
+	comparison2->cd();
 	datahist->ProjectionY("py");
-	py->SetTitle("");
+	py->SetTitle(Form("%s @ %s GeV/c in %s",trigName[ptbin[0]].Data(),pTName[ptbin[1]].Data(),frameName[ptbin[2]].Data()));
+//	py->SetTitle(Form("%s @ %s GeV/c in %s",trigName[ptbin[0]].Data(),pTName[ptbin[1]].Data(),frameName[ptbin[2]].Data()));
 	py->SetMinimum(0);
 	py->Draw();
 	hsig->ProjectionY("hy")->Draw("same");
-	hsigthetaplus->ProjectionY("hsigthetaplus_py")->Draw("same");
-	hsigthetaminus->ProjectionY("hsigthetaminus_py")->Draw("same");
-	comparisonleg = new TLegend(0.7,0.7,0.89,0.89);
+	hsigthetaplus->ProjectionY("hsigthetaplus_py");
+	hsigthetaplus_py->SetLineStyle(3);
+	hsigthetaplus_py->Draw("same");
+	hsigthetaminus->ProjectionY("hsigthetaminus_py");
+	hsigthetaminus_py->SetLineStyle(3);
+	hsigthetaminus_py->Draw("same");
+	comparisonleg = new TLegend(0.15,0.7,0.35,0.89);
+	comparisonleg->SetBorderSize(0);
+	comparisonleg->SetFillStyle(0);
 	comparisonleg->AddEntry(datahist,"data","lep");
-	comparisonleg->AddEntry(hsig,"fit","l");
-	comparisonleg->AddEntry(hsigthetaplus,"fit + 0.4","l");
-	comparisonleg->AddEntry(hsigthetaminus,"fit - 0.4","l");
-	comparisonleg->Draw("same");
+	comparisonleg->AddEntry(hsig,Form("#lambda_{#theta} = %.2f +/- %.2f",par[0],par[3]),"l");
+	comparisonleg->AddEntry(hsigthetaplus,"#lambda_{#theta} = 1.","l");
+	comparisonleg->AddEntry(hsigthetaminus,"#lambda_{#theta} = -1.","l");
+	comparisonleg->Draw("same");	
 
 	outputfile->cd();
 	hsig->Write();
 	fsig->Write();
 	comparison->Write();
+	comparison1->Write();
+	comparison2->Write();
+	
+	hsigthetaplus->Write();
+	hsigthetaminus->Write();
+
+	hsigphiplus->Write();
+	hsigphiminus->Write();
+
 	comparison->SaveAs(Form("~/polresults/20160707/functional/splot_3D_%d_2eid_inv30/pdf/comparison_%d_%d_%d.pdf",time->GetDate(),ptbin[0],ptbin[1],ptbin[2]));
+	comparison->SaveAs(Form("~/WWW/1Dcomparison/20171130/comparison_%d_%d_%d.pdf",ptbin[0],ptbin[1],ptbin[2]));
 }
 
 
@@ -325,7 +382,7 @@ Int_t Minimize(int sys=0,int trig,int pt,int frame){
 	// Now ready for minimization step
 	arglist[0] = 5000;
 	arglist[1] = 10.;
-	gMinuit->mnexcm("MIGRAD", arglist ,4,ierflg);
+//	gMinuit->mnexcm("MIGRAD", arglist ,4,ierflg);
 
 	// Print results
 	Double_t amin,edm,errdef;
@@ -334,7 +391,7 @@ Int_t Minimize(int sys=0,int trig,int pt,int frame){
 	gMinuit->mnexcm("HESSE",arglist,4,ierflg);
 	gMinuit->mnstat(amin,edm,errdef,nvpar,nparx,icstat);
 	Double_t minoslist[4] = {5000,0,1,2};
-	gMinuit->mnexcm("MINOS",minoslist,4,ierflg);
+	//gMinuit->mnexcm("MINOS",minoslist,4,ierflg);
 
 	Double_t getlambdatheta,getlambdathetaerr,getlambdaphi,getlambdaphierr,getlambdathetaphi,getlambdathetaphierr,getlambdainv,getlambdainverr;
 
@@ -360,7 +417,8 @@ Int_t Minimize(int sys=0,int trig,int pt,int frame){
 
 //	if(trig!=1 && pt!=1){ //correction of bias
 	if(1){
-		TFile* mcvsdata = new TFile(Form("/star/u/siwei/polresults/20160707/MLEmethod/splot_3D_20171116_2eid_inv30_wofactor/thetavstheta_%d_%d_%d_20171116.root",trig,pt,frame),"read");	
+		TFile* mcvsdata = new TFile(Form("/star/u/siwei/polresults/20160707/MLEmethod/splot_3D_20171207_2eid_inv30_wofactor_scan_migrad_hess/thetavstheta_%d_%d_%d_20171207.root",trig,pt,frame),"read");	
+		cout<<" mcvsdata ===== "<<mcvsdata<<endl;
 		TF1 *thetaline = (TF1*)mcvsdata->Get("fit1");
 		TF1 *philine = (TF1*)mcvsdata->Get("fit2");
 		TF1 *thetaphiline = (TF1*)mcvsdata->Get("fit3");
@@ -422,7 +480,7 @@ Int_t Minimize(int sys=0,int trig,int pt,int frame){
 		cout<<"  histgroam ===>"<<hlambda->GetMean(1)<<"    "<<hlambda->GetMean(2)<<"     "<<hlambda->GetMean(3)<<endl;
 	}
 	else return 1;
-	Double_t parameter[3] = {getlambdatheta,getlambdaphi,getlambdathetaphi}; 
+	Double_t parameter[6] = {getlambdatheta,getlambdaphi,getlambdathetaphi,getlambdathetaerr,getlambdaphierr,getlambdathetaphierr}; 
 	Int_t ptbin[4] = {trig,pt,frame,sys};
 	compare(parameter,ptbin);
 	return ierflg;
@@ -432,6 +490,8 @@ void sPlot3D_2eid_inv30(int trig=1,int pt=1,int frame=1,int sys=0) {
 
 	gStyle->SetOptStat("eMR");
 	gStyle->SetStatFontSize(0.08);
+	gStyle->SetPadGridX(0);
+	gStyle->SetPadGridY(0);
 
 	time = new TDatime();
 
