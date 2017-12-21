@@ -78,22 +78,24 @@ Int_t StMyJpsiEffMaker::Init()
 //	if(uncertainty==2) DeltaB = -0.0133904;
 
 	if(uncertainty==3) mTpceHitsDedxCut = 15.;
-	if(uncertainty==4) mTpceDcaCut = 2.;
+	if(uncertainty==4) mTpceDcaCut = 0.8;
+	if(uncertainty==5) mTpceDcaCut = 1.2;
 
-	if(uncertainty==5) mTpceHitsFitCut = 25;
-	if(uncertainty==6) mTpceHitsFitCut = 19;
-	if(uncertainty==7) mTpceHitsFitCut = 22;
-	if(uncertainty==8) mTpceHitsFitCut = 18;
+	if(uncertainty==6) mTpceHitsFitCut = 25;
+	if(uncertainty==7) mTpceHitsFitCut = 19;
+	if(uncertainty==8) mTpceHitsFitCut = 22;
+	if(uncertainty==9) mTpceHitsFitCut = 18;
 
-	if(uncertainty==9) dsmadcfactor = 1.05;
 	if(uncertainty==10) dsmadcfactor = 0.95;
+	if(uncertainty==11) dsmadcfactor = 1.05;
 
-	if(uncertainty==11) deltameanbeta = 1.;
-	if(uncertainty==12) deltameanbeta = -1.;
-	if(uncertainty==13) deltasigmabeta = 1.;
-	if(uncertainty==14) deltasigmabeta = -1.;
+	if(uncertainty==12) deltameanbeta = 1.;
+	if(uncertainty==13) deltameanbeta = -1.;
+	if(uncertainty==14) deltasigmabeta = 1.;
+	if(uncertainty==15) deltasigmabeta = -1.;
 
-	if(uncertainty==15) mEmcePECut[0] =0.2, mEmcePECut[1] = 2.2;
+	if(uncertainty==16) mEmcePECut[0] =0.2, mEmcePECut[1] = 1.4;
+	if(uncertainty==17) mEmcePECut[0] =0.4, mEmcePECut[1] = 1.6;
 
 
 	betarootfile = new TFile("/star/data01/pwg/siwei/Jpsi/TOF_1_beta_mean_sigma.root");
@@ -126,7 +128,7 @@ Int_t StMyJpsiEffMaker::Init()
 		para[1] = sigmafit->GetParameter(0);	
 	}
 */
-	if(uncertainty==16){
+	if(uncertainty==18){
 		meanfit = (TF1*)nsigmarootfile->Get("mean4");
 		sigmafit = (TF1*)nsigmarootfile->Get("sigma4");
 	}
@@ -986,7 +988,7 @@ Int_t StMyJpsiEffMaker::Make()
 			Double_t ptweight = A*TMath::Power(1+(JpsiMc.Pt()/(B+DeltaB))*(JpsiMc.Pt()/(B+DeltaB)), -6)*(JpsiMc.Pt());
 
 			Double_t levyweight = fLevy->Eval(JpsiMc.Pt());
-			if(uncertainty==17) levyweight = fPowLaw->Eval(JpsiMc.Pt());
+			if(uncertainty==19) levyweight = fPowLaw->Eval(JpsiMc.Pt());
 			Double_t levyweight_rapidity = levyweight*TMath::Exp(-0.5*(JpsiMc.Rapidity()*JpsiMc.Rapidity())/(1.416*1.416));
 			//			weight1 = levyweight;
 
@@ -1155,7 +1157,7 @@ Int_t StMyJpsiEffMaker::Make()
 				//nsigma1 = 0.;
 				//cout<<"nsigma1  ======="<<nsigma1<<endl;
 
-				if(uncertainty==16) myGaus_1->SetParameters(1,meanfit->Eval(pt1),sigmafit->Eval(pt1));
+				if(uncertainty==18) myGaus_1->SetParameters(1,meanfit->Eval(pt1),sigmafit->Eval(pt1));
 
 				bool isEmc1 = kFALSE,isTpc1[4],isTOF1 = kFALSE,isTrg1[4];
 				for(int iht=0;iht<4;iht++) {
@@ -1169,7 +1171,7 @@ Int_t StMyJpsiEffMaker::Make()
 				//nsigma2=0.;
 				//			cout<<"nsigma2 ==========="<<nsigma2<<endl;
 
-				if(uncertainty==16) myGaus->SetParameters(1,meanfit->Eval(pt2),sigmafit->Eval(pt2));
+				if(uncertainty==18) myGaus->SetParameters(1,meanfit->Eval(pt2),sigmafit->Eval(pt2));
 
 				bool isTpc2[4], isEmc2 = kFALSE,isTOF2 = kFALSE,isTrg2[4];
 				for(int iht=0;iht<4;iht++){
