@@ -78,7 +78,7 @@ Int_t StMyJpsiEffMaker::Init()
 //	if(uncertainty==2) DeltaB = -0.0133904;
 
 	if(uncertainty==3) mTpceHitsDedxCut = 15.;
-	if(uncertainty==4) mTpceDcaCut = 3.;
+	if(uncertainty==4) mTpceDcaCut = 2.;
 
 	if(uncertainty==5) mTpceHitsFitCut = 25;
 	if(uncertainty==6) mTpceHitsFitCut = 19;
@@ -144,9 +144,10 @@ Int_t StMyJpsiEffMaker::Init()
 	cout<<"nsigma1 parameter "<<para[0]<<para[1]<<endl;
 
 	fLevy = new TF1("fLevy","[0]*x*sqrt(2)/TMath::Power(1+(sqrt(x*x+3.0969*3.0969)-1.865)/[1]/[2],[1])",0,15);
-	fLevy->SetParameters(3.39805e+02,8.96953e+00,2.10824e-01);
+//	fLevy->SetParameters(3.39805e+02,8.96953e+00,2.10824e-01);
+	fLevy->SetParameters(1.99642e+02,1.07518e+01,2.50834e-01);
 
-	fPowLaw = new TF1("fPowLaw","[0]*TMath::Power(1+x*x/[1]/[1],[2])",0,20);
+	fPowLaw = new TF1("fPowLaw","[0]*x*TMath::Power(1+x*x/[1]/[1],[2])",0,20);
 	fPowLaw->SetParameters(4.90151,3.30694,-4.86445);
 	
 	function_sigma = new TF1("function_sigma","[0]+[1]*x+[2]*x*x",0,30);	   
