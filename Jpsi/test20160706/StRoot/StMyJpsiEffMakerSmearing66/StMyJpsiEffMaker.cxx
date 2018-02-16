@@ -46,11 +46,17 @@ StMyJpsiEffMaker::StMyJpsiEffMaker(const char *name, TChain *chain, Int_t uncert
 	mEtaMax = 1.;
 	mdEta = 0.1;
 
+	mTofEffSys = 0;
+	int mTofEmcCor = 0;
+	int mTofEmcCorDiff = 0;// systematic
+	mRatioTOFoverTOFandEMC = 0.95;
 
 	for(int i=0;i<20;i++)
 		for(int j=0;j<6;j++){
 			mTofEffParsPos[i][j] = 0.;
 			mTofEffParsNeg[i][j] = 0.;
+			mTofEffParsPosMB[i][j] = 0.;
+			mTofEffParsNegMB[i][j] = 0.;
 		}
 	mRan = new TRandom3();
 	uncertainty=uncertainty_init;
@@ -69,13 +75,12 @@ void StMyJpsiEffMaker::Clear(Option_t* option)
 //_____________________________________________________________
 Int_t StMyJpsiEffMaker::Init()
 {
-
 	TDatime* time = new TDatime();
 
 	mDoSmearing = true;
 
-//	if(uncertainty==1) DeltaB = 0.0133904;
-//	if(uncertainty==2) DeltaB = -0.0133904;
+	//	if(uncertainty==1) DeltaB = 0.0133904;
+	//	if(uncertainty==2) DeltaB = -0.0133904;
 
 	if(uncertainty==3) mTpceHitsDedxCut = 15.;
 	if(uncertainty==4) mTpceDcaCut = 0.8;
@@ -103,6 +108,22 @@ Int_t StMyJpsiEffMaker::Init()
 	betasigma = (TH1F*)betarootfile->Get("Tof_sigma");
 	betafit = new TF1("betafit","[0]",0,4);
 
+	TFile *ftof1 = new TFile("tofeff_noEMCmat.root");
+	if(mTofEffSys==0) hEff_TOFnoEMC = (TH1F*)ftof1->Get("hEff_TOFnoEMC");
+	if(mTofEffSys==1) hEff_TOFnoEMC = (TH1F*)ftof1->Get("hEff_TOFnoEMC_lo");
+	if(mTofEffSys==2) hEff_TOFnoEMC = (TH1F*)ftof1->Get("hEff_TOFnoEMC_hi");
+	hEff_TOFnoEMC->SetName("hEff_TOFnoEMC");
+
+	//	TFile *ftof2 = new TFile("tofeff_noEMCmat_mb_nodvz.root");
+	TFile *ftof2 = new TFile("tofeff_noEMCmat_mb.root");
+	if(mTofEffSys==0) hEff_TOFnoEMCMB = (TH1F*)ftof2->Get("hEff_TOFnoEMC");
+	if(mTofEffSys==1) hEff_TOFnoEMCMB = (TH1F*)ftof2->Get("hEff_TOFnoEMC_lo");
+	if(mTofEffSys==2) hEff_TOFnoEMCMB = (TH1F*)ftof2->Get("hEff_TOFnoEMC_hi");
+	hEff_TOFnoEMCMB->SetName("hEff_TOFnoEMCMB");
+
+	TFile *fin = new TFile("ratio_diff_e_pi.root");
+	hdiff = (TH1F*)fin->Get("hdiff");
+
 	betaGaus1 = new TF1("betaGaus1","gaus",0.9,1.1);
 	betaGaus2 = new TF1("betaGaus2","gaus",0.9,1.1);
 
@@ -118,16 +139,16 @@ Int_t StMyJpsiEffMaker::Init()
 	para[1] = sigmafit->GetParameter(0);
 
 	//cout<<"nsigma parameters ==="<<para[0]<<"    "<<para[1]<<endl;
-/*
-	if(uncertainty>=16 && uncertainty<=17){	
-		meanfit = (TF1*)nsigmarootfile->Get(Form("mean%d",uncertainty-14));
-		para[0] = meanfit->GetParameter(0);
-	}
-	if(uncertainty>=18 && uncertainty<=19){
-		sigmafit = (TF1*)nsigmarootfile->Get(Form("sigma%d",uncertainty-16));
-		para[1] = sigmafit->GetParameter(0);	
-	}
-*/
+	/*
+	   if(uncertainty>=16 && uncertainty<=17){	
+	   meanfit = (TF1*)nsigmarootfile->Get(Form("mean%d",uncertainty-14));
+	   para[0] = meanfit->GetParameter(0);
+	   }
+	   if(uncertainty>=18 && uncertainty<=19){
+	   sigmafit = (TF1*)nsigmarootfile->Get(Form("sigma%d",uncertainty-16));
+	   para[1] = sigmafit->GetParameter(0);	
+	   }
+	   */
 	if(uncertainty==18){
 		meanfit = (TF1*)nsigmarootfile->Get("mean4");
 		sigmafit = (TF1*)nsigmarootfile->Get("sigma4");
@@ -146,34 +167,46 @@ Int_t StMyJpsiEffMaker::Init()
 	cout<<"nsigma1 parameter "<<para[0]<<para[1]<<endl;
 
 	fLevy = new TF1("fLevy","[0]*x*sqrt(2)/TMath::Power(1+(sqrt(x*x+3.0969*3.0969)-1.865)/[1]/[2],[1])",0,15);
-//	fLevy->SetParameters(3.39805e+02,8.96953e+00,2.10824e-01);
-	fLevy->SetParameters(1.99642e+02,1.07518e+01,2.50834e-01);
+	//	fLevy->SetParameters(3.39805e+02,8.96953e+00,2.10824e-01);
+		fLevy->SetParameters(1.99642e+02,1.07518e+01,2.50834e-01);
+//	fLevy->SetParameters(1.57640e+02,1.14911e+01,2.73230e-01);
 
 	fPowLaw = new TF1("fPowLaw","[0]*x*TMath::Power(1+x*x/[1]/[1],[2])",0,20);
 	fPowLaw->SetParameters(4.90151,3.30694,-4.86445);
-	
+
 	function_sigma = new TF1("function_sigma","[0]+[1]*x+[2]*x*x",0,30);	   
 	function_sigma->SetParameters(1.77250e-2,3.18836e-3,1.68829e-3);
 
-	ifstream inf("tofeff/Eminus_TofEff_all_7.root_tofeffEMCMat_err.txt");
+
+	//	ifstream inf("tofeff/Eminus_TofEff_all_7.root_tofeffEMCMat_err.txt");
+	ifstream inf("tofeff/Eminus_TofEff_all_7.root_tofeffEMCMat_err0_err.txt");	
+	ifstream inf2("tofeff/Eminus_TofEff_all_9.root_tofeffEMCMat_err0_err.txt");
 	cout<<"e-"<<endl;
 	for(int i=0;i<20;i++){
 		for(int j=0;j<6;j++) inf>>mTofEffParsNeg[i][j];
 		for(int j=0;j<6;j++) cout<<mTofEffParsNeg[i][j]<<",";
+		for(int j=0;j<6;j++) inf2>>mTofEffParsNegMB[i][j];
+		for(int j=0;j<6;j++) cout<<mTofEffParsNegMB[i][j]<<",";
 		cout<<endl;
 	}
 	cout<<endl;
 	inf.close();
+	inf2.close();
 
 	cout<<"e+"<<endl;
-	inf.open("tofeff/Eplus_TofEff_all_7.root_tofeffEMCMat_err.txt");
+	//	inf.open("tofeff/Eplus_TofEff_all_7.root_tofeffEMCMat_err.txt");
+	inf.open("tofeff/Eplus_TofEff_all_7.root_tofeffEMCMat_err0_err.txt");
+	inf2.open("tofeff/Eplus_TofEff_all_9.root_tofeffEMCMat_err0_err.txt");
 	for(int i=0;i<20;i++){
 		for(int j=0;j<6;j++) inf>>mTofEffParsPos[i][j];
 		for(int j=0;j<6;j++) cout<<mTofEffParsPos[i][j]<<",";
+		for(int j=0;j<6;j++) inf2>>mTofEffParsPosMB[i][j];
+		for(int j=0;j<6;j++) cout<<mTofEffParsPosMB[i][j]<<",";
 		cout<<endl;
 	}
 	cout<<endl;
 	inf.close();
+	inf2.close();
 
 	inf.open("ptsmearing/reso_fit.txt");
 	double reso[2],resoErr[2];
@@ -193,6 +226,7 @@ Int_t StMyJpsiEffMaker::Init()
 		fReso->SetParameter(0,reso[0]-resoErr[0]);
 	}
 	fReso->SetNpx(1000);
+	fReso->Write();
 
 	inf.open("ptsmearing/dpt_CBfit.txt");
 	double pars[7],parsErr[7];
@@ -206,7 +240,7 @@ Int_t StMyJpsiEffMaker::Init()
 	fmomShape->SetParameters(pars);
 	fmomShape->SetNpx(1000);
 	cout<<" fmomShape "<<fmomShape->GetParameter(0)<<"   "<<fmomShape->GetParameter(1)<<"   "<<fmomShape->GetParameter(2)<<"   "<<fmomShape->GetParameter(3)<<"   "<<fmomShape->GetParameter(4)<<"   "<<fmomShape->GetParameter(5)<<"   "<<fmomShape->GetParameter(6)<<endl;
-
+	fmomShape->Write();
 	//hMCElectronPt = new TH1D("mcElectronPt","input electron pt",300,0,30);
 	testhist = new TH1F("test","test",30,0,30);
 
@@ -339,18 +373,39 @@ Int_t StMyJpsiEffMaker::Init()
 	hHT1JpsiCosThetaPhiPt2->Sumw2();
 	hHT2JpsiCosThetaPhiPt2->Sumw2();
 
+	hMBJpsiCosThetaPhiPt2COR = new TH3F("hMBJpsiCosThetaPhiPt2COR","hMBJpsiCosThetaPhiPt2COR",40,-1,1,40,-TMath::Pi(),TMath::Pi(),120,0,30);
+	hHT0JpsiCosThetaPhiPt2COR = new TH3F("hHT0JpsiCosThetaPhiPt2COR","hHT0JpsiCosThetaPhiPt2COR",40,-1,1,40,-TMath::Pi(),TMath::Pi(),120,0,30);
+	hHT1JpsiCosThetaPhiPt2COR = new TH3F("hHT1JpsiCosThetaPhiPt2COR","hHT1JpsiCosThetaPhiPt2COR",40,-1,1,40,-TMath::Pi(),TMath::Pi(),120,0,30);
+	hHT2JpsiCosThetaPhiPt2COR = new TH3F("hHT2JpsiCosThetaPhiPt2COR","hHT2JpsiCosThetaPhiPt2COR",40,-1,1,40,-TMath::Pi(),TMath::Pi(),120,0,30);
+	hHT2JpsiCosThetaPhiPt2COR_cc = new TH3F("hHT2JpsiCosThetaPhiPt2COR_cc","hHT2JpsiCosThetaPhiPt2COR_cc",40,-1,1,40,-TMath::Pi(),TMath::Pi(),120,0,30);
+	hHT2JpsiCosThetaPhiPt2COR_cc2 = new TH3F("hHT2JpsiCosThetaPhiPt2COR_cc2","hHT2JpsiCosThetaPhiPt2COR_cc2",40,-1,1,40,-TMath::Pi(),TMath::Pi(),120,0,30);
+	hMBJpsiCosThetaPhiPt2COR->Sumw2();
+	hHT0JpsiCosThetaPhiPt2COR->Sumw2();
+	hHT1JpsiCosThetaPhiPt2COR->Sumw2();
+	hHT2JpsiCosThetaPhiPt2COR->Sumw2();
+	hHT2JpsiCosThetaPhiPt2COR_cc->Sumw2();
+	hHT2JpsiCosThetaPhiPt2COR_cc2->Sumw2();
 
 	hJpsiCosThetaPhiPtCS2 = new TH3F("hJpsiCosThetaPhiPtCS2","hJpsiCosThetaPhiPtCS2",40,-1,1,40,-TMath::Pi(),TMath::Pi(),120,0,30);
 	hMBJpsiCosThetaPhiPtCS2 = new TH3F("hMBJpsiCosThetaPhiPtCS2","hMBJpsiCosThetaPhiPtCS2",40,-1,1,40,-TMath::Pi(),TMath::Pi(),120,0,30);
 	hHT0JpsiCosThetaPhiPtCS2 = new TH3F("hHT0JpsiCosThetaPhiPtCS2","hHT0JpsiCosThetaPhiPtCS2",40,-1,1,40,-TMath::Pi(),TMath::Pi(),120,0,30);
 	hHT1JpsiCosThetaPhiPtCS2 = new TH3F("hHT1JpsiCosThetaPhiPtCS2","hHT1JpsiCosThetaPhiPtCS2",40,-1,1,40,-TMath::Pi(),TMath::Pi(),120,0,30);
 	hHT2JpsiCosThetaPhiPtCS2 = new TH3F("hHT2JpsiCosThetaPhiPtCS2","hHT2JpsiCosThetaPhiPtCS2",40,-1,1,40,-TMath::Pi(),TMath::Pi(),120,0,30);
-
 	hJpsiCosThetaPhiPtCS2->Sumw2();
 	hMBJpsiCosThetaPhiPtCS2->Sumw2();
 	hHT0JpsiCosThetaPhiPtCS2->Sumw2();
 	hHT1JpsiCosThetaPhiPtCS2->Sumw2();
 	hHT2JpsiCosThetaPhiPtCS2->Sumw2();
+
+	hMBJpsiCosThetaPhiPtCS2COR = new TH3F("hMBJpsiCosThetaPhiPtCS2COR","hMBJpsiCosThetaPhiPtCS2COR",40,-1,1,40,-TMath::Pi(),TMath::Pi(),120,0,30);
+	hHT0JpsiCosThetaPhiPtCS2COR = new TH3F("hHT0JpsiCosThetaPhiPtCS2COR","hHT0JpsiCosThetaPhiPtCS2COR",40,-1,1,40,-TMath::Pi(),TMath::Pi(),120,0,30);
+	hHT1JpsiCosThetaPhiPtCS2COR = new TH3F("hHT1JpsiCosThetaPhiPtCS2COR","hHT1JpsiCosThetaPhiPtCS2COR",40,-1,1,40,-TMath::Pi(),TMath::Pi(),120,0,30);
+	hHT2JpsiCosThetaPhiPtCS2COR = new TH3F("hHT2JpsiCosThetaPhiPtCS2COR","hHT2JpsiCosThetaPhiPtCS2COR",40,-1,1,40,-TMath::Pi(),TMath::Pi(),120,0,30);
+	hMBJpsiCosThetaPhiPtCS2COR->Sumw2();
+	hHT0JpsiCosThetaPhiPtCS2COR->Sumw2();
+	hHT1JpsiCosThetaPhiPtCS2COR->Sumw2();
+	hHT2JpsiCosThetaPhiPtCS2COR->Sumw2();
+
 	// 2eID observation histograms
 
 	mbelectronpt = new TH1F("mbelectronpt","mbelectronpt",120,0,30);
@@ -362,7 +417,7 @@ Int_t StMyJpsiEffMaker::Init()
 	mbelectronptlevy->Sumw2();
 	mbelectronptlevy_no_eta->Sumw2();
 
-// 1eid 	
+	// 1eid 	
 	mbelectronpt1 = new TH1F("mbelectronpt1","mbelectronpt1",120,0,30);
 	mbelectronpt_no_eta1 = new TH1F("mbelectronpt_no_eta1","mbelectronpt_no_eta1",120,0,30);
 	mbelectronptlevy1 = new TH1F("mbelectronptlevy1","mbelectronptlevy1",120,0,30);
@@ -371,7 +426,7 @@ Int_t StMyJpsiEffMaker::Init()
 	mbelectronpt_no_eta1->Sumw2();
 	mbelectronptlevy1->Sumw2();
 	mbelectronptlevy_no_eta1->Sumw2();
-//1eid
+	//1eid
 
 	ht0trigpt = new TH1F("ht0trigpt","ht0trigpt",120,0,30);	
 	ht1trigpt = new TH1F("ht1trigpt","ht1trigpt",120,0,30);
@@ -459,7 +514,7 @@ Int_t StMyJpsiEffMaker::Init()
 	ht2trigrapidity_barbara->Sumw2();
 
 
-//1eid
+	//1eid
 	mbtrigrapidity_levy1 = new TH1F("mbtrigrapidity_levy1","mbtrigrapidity_levy1",30,-1.5,1.5);	
 	ht0trigrapidity_levy1 = new TH1F("ht0trigrapidity_levy1","ht0trigrapidity_levy1",30,-1.5,1.5);	
 	ht1trigrapidity_levy1 = new TH1F("ht1trigrapidity_levy1","ht1trigrapidity_levy1",30,-1.5,1.5);
@@ -486,7 +541,7 @@ Int_t StMyJpsiEffMaker::Init()
 	ht0trigrapidity_barbara1->Sumw2();
 	ht1trigrapidity_barbara1->Sumw2();
 	ht2trigrapidity_barbara1->Sumw2();
-//1eid
+	//1eid
 
 
 
@@ -565,7 +620,7 @@ Int_t StMyJpsiEffMaker::Init()
 	ht1partnerpt_levy1->Sumw2();
 	ht2partnerpt_levy1->Sumw2();
 	//1eid
-//2eid
+	//2eid
 	ht0partnerrapidity_levy = new TH1F("ht0partnerrapidity_levy","ht0partnerrapidity_levy",30,-1.5,1.5);	
 	ht1partnerrapidity_levy = new TH1F("ht1partnerrapidity_levy","ht1partnerrapidity_levy",30,-1.5,1.5);
 	ht2partnerrapidity_levy = new TH1F("ht2partnerrapidity_levy","ht2partnerrapidity_levy",30,-1.5,1.5);
@@ -586,9 +641,9 @@ Int_t StMyJpsiEffMaker::Init()
 	ht0partnerrapidity_barbara->Sumw2();
 	ht1partnerrapidity_barbara->Sumw2();
 	ht2partnerrapidity_barbara->Sumw2();
-//2eid
+	//2eid
 
-//1eid
+	//1eid
 	ht0partnerrapidity_levy1 = new TH1F("ht0partnerrapidity_levy1","ht0partnerrapidity_levy1",30,-1.5,1.5);	
 	ht1partnerrapidity_levy1 = new TH1F("ht1partnerrapidity_levy1","ht1partnerrapidity_levy1",30,-1.5,1.5);
 	ht2partnerrapidity_levy1 = new TH1F("ht2partnerrapidity_levy1","ht2partnerrapidity_levy1",30,-1.5,1.5);
@@ -611,18 +666,21 @@ Int_t StMyJpsiEffMaker::Init()
 	ht2partnerrapidity_barbara1->Sumw2();
 
 
-//1eid
-
+	//1eid
+	mbtrigpoe = new TH1F("mbtrigpoe","mbtrigpoe",100,0,4);
 	ht0trigpoe = new TH1F("ht0trigpoe","ht0trigpoe",100,0,4);
 	ht1trigpoe = new TH1F("ht1trigpoe","ht1trigpoe",100,0,4);
 	ht2trigpoe = new TH1F("ht2trigpoe","ht2trigpoe",100,0,4);
+	mbtrigpoe->Sumw2();
 	ht0trigpoe->Sumw2();
 	ht1trigpoe->Sumw2();
 	ht2trigpoe->Sumw2();
 
+	mbtrigpoe_levy = new TH1F("mbtrigpoe_levy","mbtrigpoe_levy",100,0,4);
 	ht0trigpoe_levy = new TH1F("ht0trigpoe_levy","ht0trigpoe_levy",100,0,4);
 	ht1trigpoe_levy = new TH1F("ht1trigpoe_levy","ht1trigpoe_levy",100,0,4);
 	ht2trigpoe_levy = new TH1F("ht2trigpoe_levy","ht2trigpoe_levy",100,0,4);
+	mbtrigpoe_levy->Sumw2();
 	ht0trigpoe_levy->Sumw2();
 	ht1trigpoe_levy->Sumw2();
 	ht2trigpoe_levy->Sumw2();
@@ -740,7 +798,7 @@ Int_t StMyJpsiEffMaker::Init()
 	ht1jpsirapidity_barbara->Sumw2();
 	ht2jpsirapidity_barbara->Sumw2();
 
-// 1eid jpsi rapidity
+	// 1eid jpsi rapidity
 	mbjpsirapiditylevy1 = new TH1F("mbjpsirapiditylevy1","mbjpsirapiditylevy1",30,-1.5,1.5);
 	ht0jpsirapiditylevy1 = new TH1F("ht0jpsirapiditylevy1","ht0jpsirapiditylevy1",30,-1.5,1.5);
 	ht1jpsirapiditylevy1 = new TH1F("ht1jpsirapiditylevy1","ht1jpsirapiditylevy1",30,-1.5,1.5);
@@ -767,7 +825,7 @@ Int_t StMyJpsiEffMaker::Init()
 	ht0jpsirapidity_barbara1->Sumw2();
 	ht1jpsirapidity_barbara1->Sumw2();
 	ht2jpsirapidity_barbara1->Sumw2();
-// 1eid jpsi rapidity
+	// 1eid jpsi rapidity
 
 	mbjpsiptlevy_no_eta = new TH1F("mbjpsiptlevy_no_eta","mbjpsiptlevy_no_eta",60,0,30);
 	ht0jpsiptlevy_no_eta = new TH1F("ht0jpsiptlevy_no_eta","ht0jpsiptlevy_no_eta",60,0,30);
@@ -778,7 +836,7 @@ Int_t StMyJpsiEffMaker::Init()
 	ht1jpsiptlevy_no_eta->Sumw2();
 	ht2jpsiptlevy_no_eta->Sumw2();
 
-//1eid jpsi rapidity
+	//1eid jpsi rapidity
 	mbjpsipt1 = new TH1F("mbjpsipt1","mbjpsipt1",60,0,30);
 	ht0jpsipt1 = new TH1F("ht0jpsipt1","ht0jpsipt1",60,0,30);
 	ht1jpsipt1 = new TH1F("ht1jpsipt1","ht1jpsipt1",60,0,30);
@@ -787,7 +845,7 @@ Int_t StMyJpsiEffMaker::Init()
 	ht0jpsipt1->Sumw2();
 	ht1jpsipt1->Sumw2();
 	ht2jpsipt1->Sumw2();
-	
+
 	mbjpsiptlevy1 = new TH1F("mbjpsiptlevy1","mbjpsiptlevy1",60,0,30);
 	ht0jpsiptlevy1 = new TH1F("ht0jpsiptlevy1","ht0jpsiptlevy1",60,0,30);
 	ht1jpsiptlevy1 = new TH1F("ht1jpsiptlevy1","ht1jpsiptlevy1",60,0,30);
@@ -806,7 +864,7 @@ Int_t StMyJpsiEffMaker::Init()
 	ht0jpsiptlevy_no_eta1->Sumw2();
 	ht1jpsiptlevy_no_eta1->Sumw2();
 	ht2jpsiptlevy_no_eta1->Sumw2();
-// 1eid jpsi rapidity
+	// 1eid jpsi rapidity
 	hMBJpsiPETOFHad = new TH2D("hMBJpsiPETOFHad","hMBJpsiPETOFHad;y^{rc};p_{T}^{rc} (GeV/c)",80,-2,2,300,0,30);
 	hHt0JpsiPETOFHad = new TH2D("hHt0JpsiPETOFHad","hHt0JpsiPETOFHad;y^{rc};p_{T}^{rc} (GeV/c)",80,-2,2,300,0,30);
 	hHt1JpsiPETOFHad = new TH2D("hHt1JpsiPETOFHad","hHt1JpsiPETOFHad;y^{rc};p_{T}^{rc} (GeV/c)",80,-2,2,300,0,30);
@@ -816,6 +874,17 @@ Int_t StMyJpsiEffMaker::Init()
 	hHt1JpsiPETOFHad->Sumw2();
 	hHt2JpsiPETOFHad->Sumw2();
 
+	hMBJpsiPETOFHadCor = new TH2D("hMBJpsiPETOFHadCor","hMBJpsiPETOFHadCor;y^{rc};p_{T}^{rc} (GeV/c)",80,-2,2,300,0,30); //tof emc eff correlation corrected
+	hHt0JpsiPETOFHadCor = new TH2D("hHt0JpsiPETOFHadCor","hHt0JpsiPETOFHadCor;y^{rc};p_{T}^{rc} (GeV/c)",80,-2,2,300,0,30);
+	hHt1JpsiPETOFHadCor = new TH2D("hHt1JpsiPETOFHadCor","hHt1JpsiPETOFHadCor;y^{rc};p_{T}^{rc} (GeV/c)",80,-2,2,300,0,30);
+	hHt2JpsiPETOFHadCor = new TH2D("hHt2JpsiPETOFHadCor","hHt2JpsiPETOFHadCor;y^{rc};p_{T}^{rc} (GeV/c)",80,-2,2,300,0,30);
+	hMBJpsiPETOFHadCor->Sumw2();
+	hHt0JpsiPETOFHadCor->Sumw2();
+	hHt1JpsiPETOFHadCor->Sumw2();
+	hHt2JpsiPETOFHadCor->Sumw2();
+
+
+
 	TCanvas *cutscanvas = new TCanvas("cuts","cuts",100,10,700,900);
 	cutscanvas->Range(0,0,20,24);
 	cutscanvas->SetFillColor(10);
@@ -823,7 +892,7 @@ Int_t StMyJpsiEffMaker::Init()
 	TPaveLabel *pl = new TPaveLabel(3,22,17,23.7,"cuts configuration","br");
 	pl->SetFillColor(18);
 	pl->Draw();
-	
+
 	TText t(0,0,"a");
 	t.SetTextFont(62);
 	t.SetTextSize(0.025);
@@ -930,17 +999,19 @@ Int_t StMyJpsiEffMaker::Make()
 
 			//			TRandom *rcRand1 = new TRandom();
 			//			TRandom *rcRand2 = new TRandom();
-//			double rcPt1 = mElectron->pt;
-//			double rcPt2 = mElectron2->pt;
+			double rcPt1_cc = mElectron->pt;
+			double rcPt2_cc = mElectron2->pt;
 
-			// do Smearing 
+			// do Smearing  // marker
+
 			double rcPt1 = smearElecPt(mElectron->mcPt,fReso,fmomShape);
 			double rcPt2 = smearElecPt(mElectron2->mcPt,fReso,fmomShape);
+
 			// do Smearing
 
 			// without smearing
-			//						double rcPt1 = mElectron->pt;
-			//						double rcPt2 = mElectron2->pt;
+			//									double rcPt1 = mElectron->pt;
+			//									double rcPt2 = mElectron2->pt;
 			// without smearing
 
 			double mcPt1 = mElectron->mcPt;
@@ -948,8 +1019,8 @@ Int_t StMyJpsiEffMaker::Make()
 
 
 			// do Smearing
-//			double mcPt1 = smearElecPt(mElectron->mcPt,fReso,fmomShape);
-//			double mcPt2 = smearElecPt(mElectron2->mcPt,fReso,fmomShape);			
+			//			double mcPt1 = smearElecPt(mElectron->mcPt,fReso,fmomShape);
+			//			double mcPt2 = smearElecPt(mElectron2->mcPt,fReso,fmomShape);			
 			// do Smearing 
 
 			if(mElectron->geantId==2 && mElectron2->geantId==3){
@@ -990,6 +1061,7 @@ Int_t StMyJpsiEffMaker::Make()
 			Double_t levyweight = fLevy->Eval(JpsiMc.Pt());
 			if(uncertainty==19) levyweight = fPowLaw->Eval(JpsiMc.Pt());
 			Double_t levyweight_rapidity = levyweight*TMath::Exp(-0.5*(JpsiMc.Rapidity()*JpsiMc.Rapidity())/(1.416*1.416));
+			Double_t weight_cc = weight1; 
 			//			weight1 = levyweight;
 
 			/*
@@ -1037,23 +1109,24 @@ Int_t StMyJpsiEffMaker::Make()
 
 			hJpsiPtCosThetaInvM->Fill(JpsiRc.Pt(),TMath::Cos(dtheta),JpsiRc.M());
 			//cout<<"Jpsi M="<<JpsiMc.M()<<"   "<<"Jpsi pt = "<<JpsiMc.Pt()<<"   "<<"weight1="<<weight1<<endl;
-	// Barbara weight
-	/*
-			hJpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
-			hJpsiCosThetaPhiPt2->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
-			hJpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
-			hJpsiCosThetaPhiPtCS2->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
-	*/
-	// Barbara weight
-	//
-	// Bingchu weight
+			// Barbara weight
+			/*
+			   hJpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
+			   hJpsiCosThetaPhiPt2->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
+			   hJpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
+			   hJpsiCosThetaPhiPtCS2->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
+			   */
+			// Barbara weight
+			//
+			// Bingchu weight
 			hJpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),levyweight_rapidity);
 			hJpsiCosThetaPhiPt2->Fill(costheta,dphi_HX,JpsiMc.Pt(),levyweight_rapidity);
 			hJpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),levyweight_rapidity);
 			hJpsiCosThetaPhiPtCS2->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),levyweight_rapidity);
-	// Bingchu weight
-	
-	
+			
+			// Bingchu weight
+
+
 			jpsipt->Fill(JpsiMc.Pt(),weight1);
 			/*
 			   if(mElectron->id>=0 && mElectron2->id>=0){
@@ -1068,7 +1141,6 @@ Int_t StMyJpsiEffMaker::Make()
 			double nHitsFit2 = mElectron2->nFitPts;
 			}
 			*/
-
 
 			if(mElectron->id>=0 && mElectron2->id>=0){
 
@@ -1124,6 +1196,28 @@ Int_t StMyJpsiEffMaker::Make()
 				if(mElectron->geantId==2) charge1 = 1;
 				if(mElectron->geantId==3) charge1 = -1;
 				double tofEff1 = getTOFeff(charge1, pt1, eta1);
+//				double tofEff1_mb = getTOFeff(charge1, pt1, eta1, true); 
+				double tofEff1_mb = getTOFeff(charge1, pt1, eta1, false); 
+				double tofEff1_noEmc = getTOFeff(pt1, eta1, hEff_TOFnoEMC); 
+				double tofEff1_noEmc_mb = getTOFeff(pt1, eta1, hEff_TOFnoEMCMB);
+
+//				cout<<" tofEff1 = "<<tofEff1<<"   "<<tofEff1_mb<<"   "<<tofEff1_noEmc<<"   "<<tofEff1_noEmc_mb<<endl;
+//				if(tofEff1<tofEff1_noEmc) cout<<"pt1 = "<<pt1<<"  charge1= "<<charge1<<"   "<<eta1<<endl;
+//				if(tofEff1!=tofEff1 || tofEff1_mb!=tofEff1_mb) cout<<"pt1 = "<<pt1<<"  charge1= "<<charge1<<"   "<<eta1<<endl;
+
+				if(mTofEmcCor){
+					tofEff1 = tofEff1*mRatioTOFoverTOFandEMC;
+					tofEff1_mb = tofEff1_mb*mRatioTOFoverTOFandEMC;
+				}
+				if(mTofEmcCorDiff){ 
+					double cor1 = hdiff->GetBinContent(hdiff->FindBin(pt1));
+					if(pt1>2) cor1 = 1.;
+					tofEff1 = tofEff1*cor1;
+					tofEff1_mb = tofEff1_mb*cor1;
+				}
+//				cout<<" tofEff1 = "<<tofEff1<<"   "<<tofEff1_mb<<"   "<<tofEff1_noEmc<<"   "<<tofEff1_noEmc_mb<<endl;
+//				if(tofEff1!=tofEff1 || tofEff1_mb!=tofEff1_mb) cout<<"pt1 = "<<pt1<<"  charge1= "<<charge1<<"   "<<eta1<<endl;
+
 				double beta1para[2][2];
 				double beta1=0;
 				double pEff1 =p1;
@@ -1138,6 +1232,28 @@ Int_t StMyJpsiEffMaker::Make()
 				if(mElectron2->geantId==2) charge2 = 1;
 				if(mElectron2->geantId==3) charge2 = -1;
 				double tofEff2 = getTOFeff(charge2, pt2, eta2);
+//				double tofEff2_mb = getTOFeff(charge2,pt2,eta2,true);
+				double tofEff2_mb = getTOFeff(charge2,pt2,eta2,false);
+				double tofEff2_noEmc = getTOFeff(pt2,eta2,hEff_TOFnoEMC);
+				double tofEff2_noEmc_mb = getTOFeff(pt2, eta2, hEff_TOFnoEMCMB);
+
+//				cout<<" tofEff2 = "<<tofEff2<<"   "<<tofEff2_mb<<"   "<<tofEff2_noEmc<<"   "<<tofEff2_noEmc_mb<<endl;
+//				if(tofEff2!=tofEff2 || tofEff2_mb!=tofEff2_mb) cout<<"pt2 = "<<pt2<<"  charge2= "<<charge2<<"   "<<eta2<<endl;
+
+				if(mTofEmcCor){ 
+					tofEff2 = tofEff2*mRatioTOFoverTOFandEMC;
+					tofEff2_mb = tofEff2_mb*mRatioTOFoverTOFandEMC;
+				}
+				if(mTofEmcCorDiff){ 
+					double cor2 = hdiff->GetBinContent(hdiff->FindBin(pt2));
+					if(pt2>2) cor2=1.;
+					tofEff2 = tofEff2*cor2;
+					tofEff2_mb = tofEff2_mb*cor2;
+				}
+
+//				cout<<" tofEff2 = "<<tofEff2<<"   "<<tofEff2_mb<<"   "<<tofEff2_noEmc<<"   "<<tofEff2_noEmc_mb<<endl;
+//				if(tofEff2!=tofEff2 || tofEff2_mb!=tofEff2_mb) cout<<"pt2 = "<<pt2<<"  charge2= "<<charge2<<"   "<<eta2<<endl;
+
 				double beta2para[2][2];
 				double beta2=0;
 				double pEff2 = p2;
@@ -1154,33 +1270,39 @@ Int_t StMyJpsiEffMaker::Make()
 				double a4 = betaGaus2->GetRandom();
 
 				Double_t nsigma1 = myGaus_1->GetRandom();
-				//nsigma1 = 0.;
-				//cout<<"nsigma1  ======="<<nsigma1<<endl;
 
 				if(uncertainty==18) myGaus_1->SetParameters(1,meanfit->Eval(pt1),sigmafit->Eval(pt1));
 
-				bool isEmc1 = kFALSE,isTpc1[4],isTOF1 = kFALSE,isTrg1[4];
+				bool isTpc1[4],isEmc1,isTOF1,isTrg1[4],isPE1[4],isTOFEmb1, isTOFnoEMC1,isTOFMB1,isTOFnoEMCMB1;
 				for(int iht=0;iht<4;iht++) {
-					isTrg1[iht] = kFALSE;
-					isTpc1[iht] = kFALSE;
+					isTrg1[iht]=kFALSE;
+					isTpc1[iht]=kFALSE;
+					isPE1[iht]=kFALSE;
 				}
+				isEmc1=kFALSE;
+				isTOF1=kFALSE;
+				isTOFnoEMC1 = kFALSE;
+				isTOFMB1 = kFALSE;
+				isTOFnoEMCMB1 = kFALSE;
 				beta1=betaGaus1->GetRandom();
-				//cout<<"beta1============"<<beta1<<endl;
 
 				Double_t nsigma2 = myGaus->GetRandom();
-				//nsigma2=0.;
-				//			cout<<"nsigma2 ==========="<<nsigma2<<endl;
 
 				if(uncertainty==18) myGaus->SetParameters(1,meanfit->Eval(pt2),sigmafit->Eval(pt2));
 
-				bool isTpc2[4], isEmc2 = kFALSE,isTOF2 = kFALSE,isTrg2[4];
+				bool isTpc2[4],isEmc2,isTOF2,isTrg2[4],isPE2[4],isTOFEmb2,isTOFMB2,isTOFnoEMC2,isTOFnoEMCMB2;
 				for(int iht=0;iht<4;iht++){
-					isTrg2[iht] = kFALSE;
-					isTpc2[iht] = kFALSE;
+					isTrg2[iht]=kFALSE;
+					isTpc2[iht]=kFALSE;
+					isPE2[iht]=kFALSE;
 				}
-
+				isEmc2=kFALSE;
+				isTOF2=kFALSE;
+				isTOFMB2 = kFALSE;
+				isTOFnoEMC2 = kFALSE;
+				isTOFnoEMCMB2 = kFALSE;
+				isTOFEmb2 = kFALSE;
 				beta2=betaGaus2->GetRandom();
-				//cout<<"beta2========"<<beta2<<endl;
 
 				if(nHitsFit1>=mTpceHitsFitCut &&
 						nHitsFit1/nMaxPts1>=mTpceHitsRatio &&
@@ -1192,10 +1314,6 @@ Int_t StMyJpsiEffMaker::Make()
 						//						nCommHits1>=10 &&
 						//						pt1>mPtCut[0] &&
 						pt1<mPtCut[1]){
-
-					//					cout<<"electron1 track quality cut "<<endl;
-					//cout<<"pt1 ==="<<pt1<<"     "<<nHitsFit1<<"   "<<nHitsdedx1<<"    "<<dca1<<"     "<<nsigma1<<"    "<<nHitsFit1/nMaxPts1<<"    "<<eta1<<"    "<<mElectron->tpcCommonHits<<endl;
-
 					for(int iht=0;iht<4;iht++){					
 						testhist->Fill(1);
 						if(pt1>=mTpcePtCut[iht] && p1>=mTpcePCut[iht]){
@@ -1205,9 +1323,25 @@ Int_t StMyJpsiEffMaker::Make()
 					}
 					if(pe1>mEmcePECut[0] && pe1<mEmcePECut[1] && pt1>mEmcePtMin && nsigma1>=mTpcenSigmaElectronCut[0] && nsigma1<=mTpcenSigmaElectronCut[1]) {
 						isEmc1 = kTRUE;
+						for(int iht=0;iht<3;iht++){
+							if(pt1>mEmcePtCut[iht] && dsmAdc01>mDsmAdcCut[iht]){
+								isTrg1[iht]=kTRUE;
+								if(isTrg1[iht]&&adc01>mEmceAdcCut[iht]){
+									//									isAdc01[iht]=kTRUE;
+									if(pe1>mEmcePECut[0] && pe1<mEmcePECut[1]){
+										isPE1[iht]=kTRUE;
+									}
+								}
+							}
+						}
 					}
+//					if(beta1>=mTpceBetaCut[0] && beta1<=mTpceBetaCut[1] && nsigma1>mTpcenSigmaElectronCut[0] && nsigma1<mTpcenSigmaElectronCut[1]){
 					if(mRan->Uniform(0,1)<tofEff1 && beta1>=mTpceBetaCut[0] && beta1<=mTpceBetaCut[1] && nsigma1>mTpcenSigmaElectronCut[0] && nsigma1<mTpcenSigmaElectronCut[1]){
 						isTOF1 = kTRUE;
+//						if(mRan->Uniform(0,1)<tofEff1) isTOF1 = kTRUE;						
+//						if(mRan->Uniform(0,1)<tofEff1_mb) isTOFMB1 = kTRUE;
+//						if(pt1>mEmcPtCutMin && mRan->Uniform(0,1)<tofEff1_noEmc) isTOFnoEMC1 = kTRUE;
+//						if(pt1>mEmcPtCutMin && mRan->Uniform(0,1)<tofEff1_noEmc_mb) isTOFnoEMCMB1 = kTRUE;
 						testhist->Fill(7);
 					}
 					if(pt1>2.5 && dsmAdc01>11 && e1>0 && adc01>mEmceAdcCut[0]*dsmadcfactor && pe1>mEmcePECut[0] && pe1<mEmcePECut[1]){
@@ -1222,10 +1356,8 @@ Int_t StMyJpsiEffMaker::Make()
 						isTrg1[2] = kTRUE;
 						testhist->Fill(11);
 					}
-				}
+				}// track quality cut
 
-				//cout<<"pt2 ========"<<pt2<<endl;		
-				//cout<<"truth table =====>  eta  "<<(eta2>=mTpceEtaCut[0] && eta2<=mTpceEtaCut[1])<<" nhitsfit    "<<(nHitsFit2>=mTpceHitsFitCut)<<"  dedx  "<<(nHitsdedx2>=mTpceHitsDedxCut)<<"   nsigma   "<<(nsigma2>=mTpceLoosenSigmaElectronCut[0] && nsigma2<=mTpceLoosenSigmaElectronCut[1])<<"    ratio  "<<(nHitsFit2/nMaxPts2>=mTpceHitsRatio)<<"    "<<(mElectron2->tpcCommonHits>=10)<<"    pt2 "<<(pt2<mPtCut[1])<<endl;
 				if(nHitsFit2>=mTpceHitsFitCut &&
 						nHitsFit2/nMaxPts2>=mTpceHitsRatio &&
 						dca2<mTpceDcaCut &&
@@ -1243,55 +1375,49 @@ Int_t StMyJpsiEffMaker::Make()
 							testhist->Fill(22);
 						}
 					}
-
-					//cout<<"electron2 track quality cut "<<endl;
-					//cout<<"pt2  ==="<<pt2<<"   "<<nHitsFit2<<"   "<<nHitsdedx2<<"   "<<dca2<<"   "<<nsigma2<<"   "<<nHitsFit2/nMaxPts2<<"    "<<eta2<<"   "<<mElectron2->tpcCommonHits<<endl;
-
-
 					if(pe2>mEmcePECut[0] && pe2<mEmcePECut[1] && pt2>mEmcePtMin && nsigma2>=mTpcenSigmaElectronCut[0] && nsigma2<=mTpcenSigmaElectronCut[1]) {
 						isEmc2 = kTRUE;
-						//cout<<"emc2 identification cut "<<endl;
-						//cout<<"pe2    ====="<<pe2<<"   "<<pt2<<"   "<<nsigma2<<"   "<<endl;
+						for(int iht=0;iht<3;iht++){
+							if(pt2>mEmcePtCut[iht] && dsmAdc02>mDsmAdcCut[iht]){
+								isTrg2[iht]=kTRUE;
+								if(isTrg2[iht]&&adc02>mEmceAdcCut[iht]){
+									//									isAdc02[iht]=kTRUE;
+									if(pe2>mEmcePECut[0] && pe2<mEmcePECut[1]){
+										isPE2[iht]=kTRUE;
+									}
+								}
+							}
+						}
 					}
 					if(mRan->Uniform(0,1)<tofEff2 && beta2>=mTpceBetaCut[0] && beta2<=mTpceBetaCut[1] && nsigma2>mTpcenSigmaElectronCut[0] && nsigma2<mTpcenSigmaElectronCut[1]){
+//					if(beta2>=mTpceBetaCut[0] && beta2<=mTpceBetaCut[1] && nsigma2>mTpcenSigmaElectronCut[0] && nsigma2<mTpcenSigmaElectronCut[1]){
 						isTOF2 = kTRUE;
-						//cout<<"tof2 identification cut"<<endl;
-						//						cout<<"mRan   ="<<mRan->Uniform(0,1)<<"   "<<beta2<<"    "<<nsigma2<<"    "<<endl;
+//						if(mRan->Uniform(0,1)<tofEff2) isTOF2 = kTRUE;
+//						if(mRan->Uniform(0,1)<tofEff2_mb) isTOFMB2 = kTRUE;
+//						if(pt2>mEmcPtCutMin && mRan->Uniform(0,1)<tofEff2_noEmc) isTOFnoEMC2 = kTRUE;
+//						if(pt2>mEmcPtCutMin && mRan->Uniform(0,1)<tofEff2_noEmc_mb) isTOFnoEMCMB2 = kTRUE;
 						testhist->Fill(21);
 					}
-
-					//cout<<"trig2  truth table ====> pt2 "<<(pt2>2.5)<<"   e2   "<<(e2>0)<<"   dsmadc   "<<(dsmAdc02>11)<<"  adc   "<<(adc02>mEmceAdcCut[0]*dsmadcfactor)<<"  pe2 "<<( pe2>mEmcePECut[0] && pe2<mEmcePECut[1])<<endl;
-
 					if(pt2>2.5 && dsmAdc02>11 && e2>0 && adc02>mEmceAdcCut[0]*dsmadcfactor && pe2>mEmcePECut[0] && pe2<mEmcePECut[1]){ 
-						//cout<<"HT0    "<<pt2<<"    "<<dsmAdc02<<"    "<<e2<<"     "<<adc02<<"     "<<pe2<<"      "<<endl;
 						isTrg2[0] = kTRUE;
 						testhist->Fill(12);	
 					}
-					//cout<<"trig2  truth table ====> pt2 "<<(pt2>3.6)<<"   e2   "<<(e2>0)<<"   dsmadc   "<<(dsmAdc02>15)<<"  adc   "<<(adc02>mEmceAdcCut[1]*dsmadcfactor)<<"  pe2 "<<( pe2>mEmcePECut[0] && pe2<mEmcePECut[1])<<endl;
-
-
 					if(pt2>3.6 && dsmAdc02>15 && e2>0 && adc02>mEmceAdcCut[1]*dsmadcfactor && pe2>mEmcePECut[0] && pe2<mEmcePECut[1]){
-						//cout<<"HT1    "<<pt2<<"    "<<dsmAdc02<<"    "<<e2<<"     "<<adc02<<"     "<<pe2<<"      "<<endl;
 						isTrg2[1] = kTRUE;
 						testhist->Fill(13);
 					}
 
-
-					//cout<<"trig2  truth table ====> pt2 "<<(pt2>4.3)<<"   e2   "<<(e2>0)<<"   dsmadc   "<<(dsmAdc02>18)<<"  adc   "<<(adc02>mEmceAdcCut[2]*dsmadcfactor)<<"  pe2 "<<( pe2>mEmcePECut[0] && pe2<mEmcePECut[1])<<endl;
-
-
 					if(pt2>4.3 && dsmAdc02>18 && e2>0 && adc02>mEmceAdcCut[2]*dsmadcfactor && pe2>mEmcePECut[0] && pe2<mEmcePECut[1]) {
-						//cout<<"HT2    "<<pt2<<"    "<<dsmAdc02<<"    "<<e2<<"     "<<adc02<<"     "<<pe2<<"      "<<endl;
 						isTrg2[2] = kTRUE;
 						testhist->Fill(14);
 					}
-					//cout<<"trig2 cut"<<endl;
-					//cout<<"pt2   ======"<<pt2<<"   "<<dsmAdc02<<"   "<<endl;
+				}// track quality cut		
 
-				}		
+				bool isTOFnoEMCPass1 = !isEmc1&&((pt1<mEmcPtCutMin&&isTOF1)||(pt1>mEmcPtCutMin&&isTOFnoEMC1));
+				bool isTOFnoEMCPass2 = !isEmc2&&((pt2<mEmcPtCutMin&&isTOF2)||(pt2>mEmcPtCutMin&&isTOFnoEMC2));
 
 				testhist->Fill(26);	
-				if(JpsiRc.M()>JpsiMass[0] && JpsiRc.M()<JpsiMass[1]){
+				if(JpsiRc.M()>JpsiMass[0] && JpsiRc.M()<JpsiMass[1]){ // invariant mass cut
 					if((isTpc1[0] && isTpc2[0] && isTOF1) || (isTpc1[0] && isTpc2[0] && isTOF2) || (isTpc2[0] && isEmc1) || (isTpc1[0] && isEmc2) || (isEmc1 && isEmc2)) {
 						//			hMBJpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 						//			hMBJpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
@@ -1321,7 +1447,7 @@ Int_t StMyJpsiEffMaker::Make()
 						mbtrigpt_no_eta1->Fill(pt2,levyweight);
 						mbtrigpt_levy1->Fill(pt1,levyweight_rapidity);
 						mbtrigpt_levy1->Fill(pt2,levyweight_rapidity);	
-					
+
 						mbtrigrapidity_levy1->Fill(eta1,levyweight_rapidity);
 						mbtrigrapidity_levy1->Fill(eta2,levyweight_rapidity);
 						mbtrigrapidity_levy_no_eta1->Fill(eta1,levyweight);
@@ -1331,7 +1457,6 @@ Int_t StMyJpsiEffMaker::Make()
 					}
 
 					if((isTrg1[0] && isEmc1 && isTpc2[0]) || (isTrg2[0] && isEmc2 && isTpc1[0])) {
-						//cout<<"mcPt = "<<JpsiMc.Pt()<<"weight1="<<weight1<<" mass = "<<JpsiMc.M()<<endl;
 						//						hHT0JpsiCosThetaPhiPt1->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 						//						hHT0JpsiCosThetaPhiPtCS1->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),weight1);
 
@@ -1387,7 +1512,7 @@ Int_t StMyJpsiEffMaker::Make()
 						ht1jpsirapiditylevy1->Fill(JpsiRc.Rapidity(),levyweight_rapidity);
 						ht1jpsirapiditylevy_no_eta1->Fill(JpsiRc.Rapidity(),levyweight);
 						ht1jpsirapidity_barbara1->Fill(JpsiRc.Rapidity(),weight1);
-					
+
 						if(isTrg1[1]){
 							ht1trigpt1->Fill(pt1,weight1);
 							ht1trigpt_levy1->Fill(pt1,levyweight_rapidity);
@@ -1460,8 +1585,31 @@ Int_t StMyJpsiEffMaker::Make()
 							ht2partnerrapidity_barbara1->Fill(eta1,weight1);
 						}
 					}
-
 					// 2eID observation histogram 
+
+					if((isEmc1||(!isEmc1&&(isTOFMB1||isTOFnoEMCMB1)))
+							&&(isEmc2||(!isEmc2&&(isTOFMB2||isTOFnoEMCMB2)))){ //EMC or !EMC + TOF
+						//						hMBJpsiPETOFHadCor->Fill(rcY,mcPt,weight1);
+						hMBJpsiPETOFHadCor->Fill(rcY,mcPt,levyweight_rapidity);
+					}
+
+					if((isPE1[0]&&isTpc2[0]&&isTOFnoEMCPass2)||(isPE1[0]&&isEmc2)
+							||(isPE2[0]&&isTpc1[0]&&isTOFnoEMCPass1)||(isPE2[0]&&isEmc1)){ //EMC or !EMC + TOF
+						//						hHt0JpsiPETOFHadCor->Fill(rcY,mcPt,weight1);
+						hHt0JpsiPETOFHadCor->Fill(rcY,mcPt,levyweight_rapidity);
+					}
+
+					if((isPE1[1]&&isTpc2[1]&&isTOF2)||(isPE2[1]&&isTpc1[1]&&isTOF1)||(isPE1[1]&&isEmc2)||(isPE2[1]&&isEmc1)){// TOF or EMC
+						//						hHt1JpsiPETOFHad->Fill(rcY,mcPt,weight1);
+						hHt1JpsiPETOFHadCor->Fill(rcY,mcPt,levyweight_rapidity);
+					}
+
+					if((isPE1[2]&&isTpc2[2]&&isTOFnoEMCPass2)||(isPE1[2]&&isEmc2)
+							||(isPE2[2]&&isTpc1[2]&&isTOFnoEMCPass1)||(isPE2[2]&&isEmc1)){ //EMC or !EMC + TOF
+						//						hHt2JpsiPETOFHadCor->Fill(rcY,mcPt,weight1);
+						hHt2JpsiPETOFHadCor->Fill(rcY,mcPt,levyweight_rapidity);
+					}
+
 					if((isTOF1 && isTOF2 && isTpc1[0] && isTpc2[0]) || (isEmc1 && isEmc2 ) || (isEmc1 && isTOF2 && isTpc2[0]) || (isEmc2 && isTOF1 && isTpc1[0])){
 						//					hMBJpsiCosThetaPhiPt2->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 						//					hMBJpsiCosThetaPhiPt2->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
@@ -1488,18 +1636,18 @@ Int_t StMyJpsiEffMaker::Make()
 						mbelectronptlevy_no_eta->Fill(pt1,levyweight_rapidity);
 						mbelectronptlevy_no_eta->Fill(pt2,levyweight_rapidity);
 
-					
+						mbtrigpoe_levy->Fill(pe1,levyweight_rapidity);
+						mbtrigpoe_levy->Fill(pe2,levyweight_rapidity);
+
 						mbtrigrapidity_levy->Fill(eta1,levyweight_rapidity);	
 						mbtrigrapidity_levy->Fill(eta2,levyweight_rapidity);	
-						
+
 						mbtrigrapidity_levy_no_eta->Fill(eta1,levyweight);
 						mbtrigrapidity_levy_no_eta->Fill(eta2,levyweight);
 
 						mbtrigrapidity_barbara->Fill(eta1,weight1);
 						mbtrigrapidity_barbara->Fill(eta2,weight1);
 					}
-					//			cout<<"electrons are "<<" emc and tof "<<isTrg1[0]<<" isEmc1 "<<isEmc1<<" isTOF2 "<<isTOF2<<"  isTrg2"<<isTrg2[0]<<"   isEmc2"<<isEmc2<<"   isTOF1  "<<isTOF1<<endl;
-
 
 					// 2eID observation histogram
 					Double_t pe1_smearing = pe1;
@@ -1508,7 +1656,7 @@ Int_t StMyJpsiEffMaker::Make()
 					if((isTrg1[0] && isTpc2[0] && isTOF2) || (isTrg2[0] && isTpc1[0] && isTOF1) || (isTrg1[0] && isEmc1 && isEmc2) || (isTrg2[0] && isEmc2 && isEmc1)){
 						//						hHT0JpsiCosThetaPhiPt2->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 						hHT0JpsiCosThetaPhiPt2->Fill(costheta,dphi_HX,JpsiMc.Pt(),levyweight_rapidity);
-						hHT0JpsiCosThetaPhiPtCS2->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiRc.Pt(),levyweight_rapidity);
+						hHT0JpsiCosThetaPhiPtCS2->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),levyweight_rapidity);
 						ht0jpsipt->Fill(JpsiRc.Pt(),weight1);
 						ht0jpsipt_no_eta->Fill(JpsiRc.Pt(),ptweight);
 						ht0jpsiptlevy->Fill(JpsiRc.Pt(),levyweight_rapidity);
@@ -1566,7 +1714,7 @@ Int_t StMyJpsiEffMaker::Make()
 					if((isTrg1[1] && isTpc2[1] && isTOF2) || (isTrg2[1] && isTpc1[1] && isTOF1) || (isTrg1[1] && isEmc1 && isEmc2) || (isTrg2[1] && isEmc2 && isEmc1)){
 						//						hHT1JpsiCosThetaPhiPt2->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 						hHT1JpsiCosThetaPhiPt2->Fill(costheta,dphi_HX,JpsiMc.Pt(),levyweight_rapidity);
-						hHT1JpsiCosThetaPhiPtCS2->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiRc.Pt(),levyweight_rapidity);
+						hHT1JpsiCosThetaPhiPtCS2->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),levyweight_rapidity);
 						ht1jpsipt->Fill(JpsiRc.Pt(),weight1);
 						ht1jpsipt_no_eta->Fill(JpsiRc.Pt(),weight1);
 						ht1jpsiptlevy->Fill(JpsiRc.Pt(),levyweight_rapidity);
@@ -1628,7 +1776,7 @@ Int_t StMyJpsiEffMaker::Make()
 					if((isTrg1[2] && isTpc2[2] && isTOF2) || (isTrg2[2] && isTpc1[2] && isTOF1) || (isTrg1[2] && isEmc1 && isEmc2) || (isTrg2[2] && isEmc2 && isEmc1)){
 						//						hHT2JpsiCosThetaPhiPt2->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight1);
 						hHT2JpsiCosThetaPhiPt2->Fill(costheta,dphi_HX,JpsiMc.Pt(),levyweight_rapidity);
-						hHT2JpsiCosThetaPhiPtCS2->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiRc.Pt(),levyweight_rapidity);
+						hHT2JpsiCosThetaPhiPtCS2->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),levyweight_rapidity);
 						ht2jpsipt->Fill(JpsiRc.Pt(),weight1);
 						ht2jpsipt_no_eta->Fill(JpsiRc.Pt(),weight1);
 						ht2jpsiptlevy->Fill(JpsiRc.Pt(),levyweight_rapidity);
@@ -1687,7 +1835,57 @@ Int_t StMyJpsiEffMaker::Make()
 							ht2partnerpoe_smearing->Fill(pe1_smearing,weight1);
 						}
 					}
+
+					if((isEmc1||(!isEmc1&&(isTOFMB1||isTOFnoEMCMB1)))
+							&&(isEmc2||(!isEmc2&&(isTOFMB2||isTOFnoEMCMB2)))){
+						hMBJpsiCosThetaPhiPt2COR->Fill(costheta,dphi_HX,JpsiMc.Pt(),levyweight_rapidity);
+						hMBJpsiCosThetaPhiPtCS2COR->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),levyweight_rapidity);
+					}
+
+					//if((isPE1[0]&&isTpc2[0]&&isTOFnoEMCPass2)||(isPE1[0]&&isEmc2)
+					if(isPE1[0]!=isTrg1[0] || isPE1[1]!=isTrg1[1] || isPE1[2]!=isTrg1[2] || isPE2[0]!=isTrg2[0] || isPE2[1]!=isTrg2[1] || isPE2[2]!=isTrg2[2]){
+						cout<<" table :===== "<<endl;
+						cout<<" isPE1[0] = "<<isPE1[0]<<"   "<<isPE1[1]<<"   "<<isPE1[2]<<endl;
+						cout<<" isPE2[0] = "<<isPE2[0]<<"   "<<isPE2[1]<<"   "<<isPE2[2]<<endl;
+
+						cout<<" isTrg1[0] = "<<isTrg1[0]<<"   "<<isTrg1[1]<<"   "<<isTrg1[2]<<endl;
+						cout<<" isTrg2[0] = "<<isTrg2[0]<<"   "<<isTrg2[1]<<"   "<<isTrg2[2]<<endl;
+
+						cout<<" isTOF1 = "<<isTOF1<<endl;
+						cout<<" isTOFnoEMCPass1 = "<<isTOFnoEMCPass1<<endl;
+						cout<<" isTOF2 = "<<isTOF2<<endl;
+						cout<<" isTOFnoEMCPass2 = "<<isTOFnoEMCPass2<<endl;
+					}
+
+					if((isTrg1[0]&&isTpc2[0]&&isTOF2)||(isTrg1[0]&&isEmc2)
+							||(isTrg2[0]&&isTpc1[0]&&isTOF1)||(isTrg2[0]&&isEmc1)){
+						hHT0JpsiCosThetaPhiPt2COR->Fill(costheta,dphi_HX,JpsiMc.Pt(),levyweight_rapidity);
+						hHT0JpsiCosThetaPhiPtCS2COR->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),levyweight_rapidity);
+					}
+
+					if((isTrg1[1]&&isTpc2[1]&&isTOF2)||(isTrg2[1]&&isTpc1[1]&&isTOF1)||(isTrg1[1]&&isEmc2)||(isTrg2[1]&&isEmc1)){
+						hHT1JpsiCosThetaPhiPt2COR->Fill(costheta,dphi_HX,JpsiMc.Pt(),levyweight_rapidity);
+						hHT1JpsiCosThetaPhiPtCS2COR->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),levyweight_rapidity);
+					}
+
+					if((isTrg1[2]&&isTpc2[2]&&isTOFnoEMCPass2)||(isTrg1[2]&&isEmc2)
+							||(isTrg2[2]&&isTpc1[2]&&isTOFnoEMCPass1)||(isTrg2[2]&&isEmc1)){ //EMC or !EMC + TOF
+						hHT2JpsiCosThetaPhiPt2COR->Fill(costheta,dphi_HX,JpsiMc.Pt(),levyweight_rapidity);
+						hHT2JpsiCosThetaPhiPtCS2COR->Fill(TMath::Cos(dtheta_CS),dphi_CS,JpsiMc.Pt(),levyweight_rapidity);
+					}
 				} // invariant mass 
+
+				// check tof efficiency
+				if((isTrg1[2]&&isTpc2[2]&&isTOFnoEMCPass2)||(isTrg1[2]&&isEmc2)
+						||(isTrg2[2]&&isTpc1[2]&&isTOFnoEMCPass1)||(isTrg2[2]&&isEmc1)){ //EMC or !EMC + TOF
+					hHT2JpsiCosThetaPhiPt2COR_cc->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight_cc);
+				}
+				if((isTrg1[2]&&isTpc2[2]&&isTOF2)||(isTrg1[2]&&isEmc2)
+						||(isTrg2[2]&&isTpc1[2]&&isTOF1)||(isTrg2[2]&&isEmc1)){ //EMC or !EMC + TOF
+					hHT2JpsiCosThetaPhiPt2COR_cc2->Fill(costheta,dphi_HX,JpsiMc.Pt(),weight_cc);
+				}
+				// check tof efficiency
+
 
 				if((isTpc1[0] && isTpc2[0] && isTOF1) || (isTpc1[0] && isTpc2[0] && isTOF2) || (isTpc2[0] && isEmc1) || (isTpc1[0] && isEmc2) || (isEmc1 && isEmc2)) {
 					hMBJpsiPtInvM->Fill(JpsiRc.Pt(),JpsiRc.M(),weight1);
@@ -1758,8 +1956,6 @@ Int_t StMyJpsiEffMaker::Make()
 					//					cout<<" weight1 ======"<<weight1<<endl; 
 					hHt2JpsiPETOFHad->Fill(rcY,mcPt,weight1);
 				}
-
-
 				//2eID Bingchu's Jpsi observation histogram
 			}
 		}
@@ -1768,14 +1964,23 @@ Int_t StMyJpsiEffMaker::Make()
 	return kStOk;
 }
 
-Double_t StMyJpsiEffMaker::getTOFeff(int charge, double pt, double eta){
+
+Double_t StMyJpsiEffMaker::getTOFeff(int charge, double pt, double eta, bool isMB){
 	int ieta = (eta-mEtaMin)/mdEta;
 	if(eta>mEtaMin && eta<mEtaMax){
 		if(ieta<0||ieta>20) cout<<"WARN: eta bin is not within [-1,1]"<<endl;
 		if(charge==1){
-			function_tofeff->SetParameters(mTofEffParsPos[ieta][0]+tofmatching*mTofEffParsPos[ieta][1],mTofEffParsPos[ieta][2]+tofmatching*mTofEffParsPos[ieta][3],mTofEffParsPos[ieta][4]+tofmatching*mTofEffParsPos[ieta][5]);
+			if(isMB){
+				function_tofeff->SetParameters(mTofEffParsPosMB[ieta][0],mTofEffParsPosMB[ieta][2],mTofEffParsPosMB[ieta][4]);
+			}else{
+				function_tofeff->SetParameters(mTofEffParsPos[ieta][0],mTofEffParsPos[ieta][2],mTofEffParsPos[ieta][4]);
+			}
 		}else if(charge==-1){
-			function_tofeff->SetParameters(mTofEffParsNeg[ieta][0]+tofmatching*mTofEffParsNeg[ieta][1],mTofEffParsNeg[ieta][2]+tofmatching*mTofEffParsNeg[ieta][3],mTofEffParsNeg[ieta][4]+tofmatching*mTofEffParsNeg[ieta][5]);
+			if(isMB){
+				function_tofeff->SetParameters(mTofEffParsNegMB[ieta][0],mTofEffParsNegMB[ieta][2],mTofEffParsNegMB[ieta][4]);
+			}else{
+				function_tofeff->SetParameters(mTofEffParsNeg[ieta][0],mTofEffParsNeg[ieta][2],mTofEffParsNeg[ieta][4]);
+			}
 		}
 
 		if(charge==1 || charge==-1){
@@ -1788,9 +1993,41 @@ Double_t StMyJpsiEffMaker::getTOFeff(int charge, double pt, double eta){
 	}
 }
 
+Double_t StMyJpsiEffMaker::getTOFeff(double pt, double eta, TH1F *h1){
+	double eff = 0.;
+	if(fabs(eta)>1) return eff;
+	int bin = h1->FindBin(pt);
+	if(bin>h1->GetNbinsX()) bin = h1->GetNbinsX();
+	eff = h1->GetBinContent(bin);
+	return eff;
+}
+/*
+   Double_t StMyJpsiEffMaker::getTOFeff(int charge, double pt, double eta){
+   int ieta = (eta-mEtaMin)/mdEta;
+   if(eta>mEtaMin && eta<mEtaMax){
+   if(ieta<0||ieta>20) cout<<"WARN: eta bin is not within [-1,1]"<<endl;
+   if(charge==1){
+   function_tofeff->SetParameters(mTofEffParsPos[ieta][0]+tofmatching*mTofEffParsPos[ieta][1],mTofEffParsPos[ieta][2]+tofmatching*mTofEffParsPos[ieta][3],mTofEffParsPos[ieta][4]+tofmatching*mTofEffParsPos[ieta][5]);
+   }else if(charge==-1){
+   function_tofeff->SetParameters(mTofEffParsNeg[ieta][0]+tofmatching*mTofEffParsNeg[ieta][1],mTofEffParsNeg[ieta][2]+tofmatching*mTofEffParsNeg[ieta][3],mTofEffParsNeg[ieta][4]+tofmatching*mTofEffParsNeg[ieta][5]);
+   }
+
+   if(charge==1 || charge==-1){
+   return function_tofeff->Eval(pt);
+   }else{
+   return 0.;
+   }
+   }else{
+   return 0.;
+   }
+   }
+   */
+
 Double_t StMyJpsiEffMaker::smearElecPt(Double_t ept, TF1 *fdPtSig, TF1 *momShape){
 	Double_t epsig = fdPtSig->Eval(ept);
-	Double_t smpt = ept*(1. + momShape->GetRandom()*epsig/0.01);
+	Double_t momshaper = momShape->GetRandom();
+	Double_t smpt = ept*(1. + momshaper*epsig/0.01);
+//	if(smpt<0) smpt=0.; // 20180216 marker
 	return smpt;
 }
 
@@ -1820,6 +2057,9 @@ Double_t CrystalBall2(Double_t *x, Double_t *par)
 		return N * C * TMath::Power(D+norm, -n2);
 	}
 }
+
+
+
 
 void printCuts(){
 	cout<<endl;
