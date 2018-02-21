@@ -177,8 +177,10 @@ Int_t pseudo(int n=0,int trig,int pt,int frame){
 	gRandom = new TRandom3();
 	gRandom->SetSeed();
 
-	NSIGNAL = datahist->Integral();	
-	NBKG = bkghist->Integral();
+	NSIGNAL = datahist->Integral();
+	NBKG = 2*bkghist->Integral();
+//	NSIGNAL = 100*datahist->Integral();// 100 times of signal counts	
+//	NBKG = 100*2*bkghist->Integral(); // 100 times of background counts
 
 	for(int i=0;i<gRandom->Poisson(NSIGNAL);) {
 		Double_t xsig,ysig;
@@ -275,7 +277,9 @@ Int_t pseudo(int n=0,int trig,int pt,int frame){
 	Double_t minoslist[4] = {5000,0,1,2};
 
 //	if(ierflg!=0){
-//		gMinuit->mnexcm("MINOS",minoslist,4,ierflg);
+		if(trig==3 && pt==5 && frame==0) gMinuit->mnexcm("MINOS",minoslist,4,ierflg);
+		if(trig==1 && pt==1 && frame==0) gMinuit->mnexcm("MINOS",minoslist,4,ierflg);
+
 		if(ierflg==0) method->Fill(5);
 //	}
 
@@ -407,8 +411,13 @@ void correcteddata(int file = 0,int trig,int pt,int frame,int rebin = 0){
 //		efficiencyfile = new TFile("/star/u/siwei/efficiency/test20160706/rootfile20170825/OutFile_sys0.root","read");// 2.9 < mee < 3.2 GeV/c^2 2eid;	
 	//	efficiencyfile = new TFile("/star/u/siwei/efficiency/test20160706/rootfile20170911/OutFile_sys0_inv30.root","read");// 2.9 < mee < 3.2 GeV/c^2 2eid;	
 	//	efficiencyfile = new TFile("/star/u/siwei/efficiency/test20160706/rootfile20170921/OutFile_sys0_inv30.root","read");// 2.9 < mee < 3.2 GeV/c^2 2eid;	
-		efficiencyfile = new TFile("/star/u/siwei/efficiency/test20160706/rootfile20171017/OutFile_sys0_inv30.root","read");// 2.9 < mee < 3.2 GeV/c^2 2eid;	
+//		efficiencyfile = new TFile("/star/u/siwei/efficiency/test20160706/rootfile20171017/OutFile_sys0_inv30.root","read");// 2.9 < mee < 3.2 GeV/c^2 2eid;	
+//		efficiencyfile = new TFile("/star/u/siwei/efficiency/test20160706/rootfile20180206/OutFile_sys0_inv30.root","read");// 2.9 < mee < 3.2 GeV/c^2 2eid;	
+//		efficiencyfile = new TFile("/star/u/siwei/efficiency/test20160706/rootfile20180213/OutFile_sys0_inv30.root","read");// 2.9 < mee < 3.2 GeV/c^2 2eid;	
+//		efficiencyfile = new TFile("/star/u/siwei/efficiency/test20160706/rootfile20180216/OutFile_sys0_inv30.root","read");// 2.9 < mee < 3.2 GeV/c^2 2eid;	
 //		efficiencyfile = new TFile("/star/u/siwei/efficiency/test20160706/rootfile20170828/OutFile_sys0_inv30.root","read");// 3.0 < mee < 3.15 GeV/c^2 2eid;	
+//		efficiencyfile = new TFile("/star/u/siwei/efficiency/test20160706/rootfile20180217/OutFile_sys0_inv30.root","read");// 2.9 < mee < 3.2 GeV/c^2 2eid;	
+		efficiencyfile = new TFile("/star/u/siwei/efficiency/test20160706/rootfile20180220/OutFile_sys0_inv30.root","read");// 2.9 < mee < 3.2 GeV/c^2 2eid;	
 	
 	//	rawdatafile[file][trig] = new TFile(Form("../invmass_%deid_inv30/rootfile20170912/%s_sys%d.ana.root",eid,trigSet[trig].Data(),0),"read");// 2.9 < mee < 3.2 GeV/c^2 2eid;
 		rawdatafile[file][trig] = new TFile(Form("../invmass_%deid_inv30/rootfile20170912/%s_sys%d.ana.root",eid,trigSet[trig].Data(),0),"read");// 2.9 < mee < 3.2 GeV/c^2 2eid;
@@ -464,13 +473,15 @@ else if(eid==2){
 //2eID
 	
 		if(frame==0){
-			eff3D[file][trig][pt][frame][0] = (TH3F*)efficiencyfile->Get(Form("h%sJpsiCosThetaPhiPt2",trigName[trig].Data()));
+//			eff3D[file][trig][pt][frame][0] = (TH3F*)efficiencyfile->Get(Form("h%sJpsiCosThetaPhiPt2",trigName[trig].Data()));
+			eff3D[file][trig][pt][frame][0] = (TH3F*)efficiencyfile->Get(Form("h%sJpsiCosThetaPhiPt2COR",trigName[trig].Data()));
 			eff3D[file][trig][pt][frame][0]->SetName(Form("eff3D_pass_%d_%d_%d_%d",file,trig,pt,frame));
 			eff3D[file][trig][pt][frame][1] = (TH3F*)efficiencyfile->Get("hJpsiCosThetaPhiPt2");
 			eff3D[file][trig][pt][frame][1]->SetName(Form("hJpsiCosThetaPhiPt2_%s",trigName[trig].Data()));
 		}
 		else{	
-			eff3D[file][trig][pt][frame][0] = (TH3F*)efficiencyfile->Get(Form("h%sJpsiCosThetaPhiPtCS2",trigName[trig].Data()));
+//			eff3D[file][trig][pt][frame][0] = (TH3F*)efficiencyfile->Get(Form("h%sJpsiCosThetaPhiPtCS2",trigName[trig].Data()));
+			eff3D[file][trig][pt][frame][0] = (TH3F*)efficiencyfile->Get(Form("h%sJpsiCosThetaPhiPtCS2COR",trigName[trig].Data()));
 			eff3D[file][trig][pt][frame][0]->SetName(Form("eff3D_pass_%d_%d_%d_%d",file,trig,pt,frame));
 			eff3D[file][trig][pt][frame][1] = (TH3F*)efficiencyfile->Get("hJpsiCosThetaPhiPtCS2");
 			eff3D[file][trig][pt][frame][1]->SetName(Form("hJpsiCosThetaPhiPtCS2_%s",trigName[trig].Data()));
